@@ -1,7 +1,7 @@
 #define DEBUG
 
 
-#define STEM_THRESHOLD_DISTANCE  65
+#define STEM_THRESHOLD_DISTANCE  75
 
 
 #include "itkImage.h"
@@ -52,6 +52,7 @@ typedef itk::MinimumMaximumImageCalculator <ImageType> ImageCalculatorFilterType
 
 //typedef itk::ExtractImageFilter< ImageType, ImageType > ExtractFilter;
 typedef itk::RegionOfInterestImageFilter< ImageType, ImageType > ExtractFilter;
+typedef itk::RegionOfInterestImageFilter< UnsignedCharImageType, UnsignedCharImageType > ExtractFilter2;
 
 
 //Overlay
@@ -99,6 +100,9 @@ struct Eye{
   double initialRadius;
   double minor;
   double major;
+
+  double initialRadiusX;
+  double initialRadiusY;
   
   ImageType::Pointer aligned;
 };
@@ -195,7 +199,7 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
   ImageType::PointType imageOrigin = image->GetOrigin();
 
   //add white border
-  ITKFilterFunctions<ImageType>::AddBorder(image, 25);
+  ITKFilterFunctions<ImageType>::AddBorder(image, 30);
 
 
 
@@ -212,7 +216,7 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
 
 
   ////
-  //2. Find center and size of eye suing a distance transform of binarized image
+  //2. Find center and size of eye using a distance transform of binarized image
   ////
   //TODO should use binarize filter
   image = ITKFilterFunctions<ImageType>::ThresholdAbove(image, 25, 100);
@@ -255,6 +259,74 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
   std::cout << "Eye inital center: " << eye.initialCenterIndex << std::endl;
   std::cout << "Eye initial radius: "<< eye.initialRadius << std::endl;
 
+  //Compute vertical distance to eye border
+  ImageType::SizeType yRegionSize;
+  yRegionSize[0] = 20;
+  yRegionSize[1] = imageSize[1];
+  ImageType::IndexType yRegionIndex;
+  yRegionIndex[0] =  eye.initialCenterIndex[0] - 10;
+  yRegionIndex[1] =  0;
+  ImageType::RegionType yRegion(yRegionIndex, yRegionSize);
+  
+  ExtractFilter2::Pointer extractFilterY = ExtractFilter2::New();
+  extractFilterY->SetRegionOfInterest(yRegion);
+  extractFilterY->SetInput( maskCastFilter->GetOutput() );
+  extractFilterY->Update();
+
+  SignedDistanceFilter::Pointer signedDistanceY = SignedDistanceFilter::New();
+  signedDistanceY->SetInput( extractFilterY->GetOutput() );
+  signedDistanceY->SetInsideValue(100);
+  signedDistanceY->SetOutsideValue(0);
+  //signedDistanceY->GetOutput()->SetRequestedRegion( yRegion );
+  signedDistanceY->Update();
+  ImageType::Pointer imageDistanceY = signedDistanceY->GetOutput();
+
+#ifdef DEBUG
+  ImageIO<ImageType>::WriteImage(imageDistanceY, catStrings(prefix, "-eye-ydistance.tif") );
+#endif
+
+  ImageCalculatorFilterType::Pointer imageCalculatorY = ImageCalculatorFilterType::New ();
+  imageCalculatorY->SetImage( imageDistanceY );
+  imageCalculatorY->Compute();
+  
+  eye.initialRadiusY = imageCalculatorY->GetMaximum() ;
+
+  std::cout << "Eye initial radiusY: "<< eye.initialRadiusY << std::endl;
+  
+  
+  //Compute horizontal distance to eye border
+  ImageType::SizeType xRegionSize;
+  xRegionSize[0] = imageSize[0];
+  xRegionSize[1] = 20;
+  ImageType::IndexType xRegionIndex;
+  xRegionIndex[0] =  0;
+  xRegionIndex[1] =  eye.initialCenterIndex[1] - 10;
+  ImageType::RegionType xRegion(xRegionIndex, xRegionSize);
+    
+  ExtractFilter2::Pointer extractFilterX = ExtractFilter2::New();
+  extractFilterX->SetRegionOfInterest(xRegion);
+  extractFilterX->SetInput( maskCastFilter->GetOutput() );
+  extractFilterX->Update();
+
+  SignedDistanceFilter::Pointer signedDistanceX = SignedDistanceFilter::New();
+  signedDistanceX->SetInput( extractFilterX->GetOutput() );
+  signedDistanceX->SetInsideValue(100);
+  signedDistanceX->SetOutsideValue(0);
+  //signedDistanceX->GetOutput()->SetRequestedRegion( xRegion );
+  signedDistanceX->Update();
+  ImageType::Pointer imageDistanceX = signedDistanceX->GetOutput();
+
+#ifdef DEBUG
+  ImageIO<ImageType>::WriteImage(imageDistanceX, catStrings(prefix, "-eye-xdistance.tif") );
+#endif
+
+  ImageCalculatorFilterType::Pointer imageCalculatorX = ImageCalculatorFilterType::New ();
+  imageCalculatorX->SetImage( imageDistanceX );
+  imageCalculatorX->Compute();
+  
+  eye.initialRadiusX = imageCalculatorX->GetMaximum() ;
+
+  std::cout << "Eye initial radiusX: "<< eye.initialRadiusX << std::endl;
 
 
   //smooth thresholded image fro registration
@@ -497,12 +569,12 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   //   to yield a binary image of the stem. 
   ////
   ImageType::IndexType desiredStart;
-  desiredStart[0] = eye.center[0] - 1.1 * eye.initialRadius;
-  desiredStart[1] = eye.center[1] + 1.1 * eye.initialRadius;
+  desiredStart[0] = eye.center[0] - 0.9 * eye.initialRadius;
+  desiredStart[1] = eye.initialCenter[1] + 1.1 * eye.initialRadiusY ;
  
   ImageType::SizeType desiredSize;
-  desiredSize[0] = 2.2 * eye.initialRadius;
-  desiredSize[1] = 1.5 * eye.initialRadius;
+  desiredSize[0] = 1.8 * eye.initialRadius;
+  desiredSize[1] = 0.8 * eye.initialRadius;
   if(desiredStart[1] + desiredSize[1] > imageSize[1] ){
     desiredSize[1] = imageSize[1] - desiredStart[1];
   }
@@ -547,11 +619,12 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   //4. Find center and approximate width of stem using a distance transform 
   ////
   ITKFilterFunctions<ImageType>::SigmaArrayType sigma;
-  sigma[0] = 3 * stemSpacing[0]; 
-  sigma[1] = 3 * stemSpacing[0]; 
+  sigma[0] = 1.5 * stemSpacing[0]; 
+  sigma[1] = 20 * stemSpacing[1]; 
   //sigma[1] = stemSize[1]/12.0 * stemSpacing[1]; 
   ImageType::Pointer stemImage = ITKFilterFunctions<ImageType>::GaussSmooth( stemImageOrig, sigma);
-  
+ 
+  //Reascle indiviudal rows 
   ITKFilterFunctions<ImageType>::RescaleRows(stemImage);
 
 
@@ -595,7 +668,8 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   stemCastFilter->Update();
   UnsignedCharImageType::Pointer stemImage2 = stemCastFilter->GetOutput();
 
-  ITKFilterFunctions<UnsignedCharImageType>::AddBorder(stemImage2, 20);
+  ITKFilterFunctions<UnsignedCharImageType>::AddVerticalBorder(stemImage2, 20);
+  ITKFilterFunctions<UnsignedCharImageType>::AddHorizontalBorder(stemImage2, 5);
 
   SignedDistanceFilter::Pointer stemDistanceFilter = SignedDistanceFilter::New();
   stemDistanceFilter->SetInput( stemImage2 );
@@ -603,7 +677,13 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   stemDistanceFilter->SetOutsideValue(0);
   stemDistanceFilter->Update();
   ImageType::Pointer stemDistance = stemDistanceFilter->GetOutput();
-    
+
+  //This will distort the inital stem width estimate
+  //sigma[0] = 10.0 * stemSpacing[0]; 
+  //sigma[1] = 10.0 * stemSpacing[1]; 
+  //stemDistance = ITKFilterFunctions<ImageType>::GaussSmooth(stemDistance, sigma);
+
+  
 #ifdef DEBUG
   ImageIO<ImageType>::WriteImage( stemDistance, catStrings(prefix, "-stem-distance.tif") );
 #endif
@@ -620,22 +700,73 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   std::cout << "Approximate width of stem: " <<  2 * stem.initialWidth << std::endl;
   std::cout << "Approximate stem center: " << stem.initialCenterIndex << std::endl;
   
-  float tb = stemImage->GetPixel( stem.initialCenterIndex );
-  tb  += tb/10;
+
+  //Rescale rows left and righ of the approximate center to 0 - 100
+  float centerIntensity = stemImage->GetPixel( stem.initialCenterIndex );
+  std::cout << "Approximate stem center intensity: " << centerIntensity << std::endl;
+  for(int i=0; i<stemSize[1]; i++){
+    ImageType::IndexType index;
+    index[1] = i;
+    float maxIntensityLeft = 0;
+    for(int j=0; j<stem.initialCenterIndex[0]; j++){
+      index[0] = j;
+      maxIntensityLeft = std::max( stemImage->GetPixel(index), maxIntensityLeft );
+    }
+    for(int j=0; j<stem.initialCenterIndex[0]; j++){
+      index[0] = j;
+      float value = ( stemImage->GetPixel(index) - centerIntensity ) / 
+		  ( maxIntensityLeft - centerIntensity )  ;
+      value = std::max(0.f, value)*100;
+      value = std::min(100.f, value);
+      stemImage->SetPixel(index, value );
+    }
+    
+    float maxIntensityRight = 0;
+    for(int j=stem.initialCenterIndex[0]; j<stemSize[0]; j++){
+      index[0] = j;
+      maxIntensityRight = std::max( stemImage->GetPixel(index), maxIntensityRight );
+    }
+    for(int j=stem.initialCenterIndex[0]; j<stemSize[0]; j++){
+      index[0] = j;
+      float value = ( stemImage->GetPixel(index) - centerIntensity ) / 
+		  ( maxIntensityRight - centerIntensity ) ;
+      value = std::max(0.f, value) * 100;
+      value = std::min(100.f, value);
+      stemImage->SetPixel(index, value  );
+    }
+    
+
+  }
+
+#ifdef DEBUG
+  ImageIO<ImageType>::WriteImage( stemImage, catStrings(prefix, "-stem-scaled.tif") );
+#endif
+
+
+  //Not needed with above scaled image
+  /*
+  float tb = 70;
   std::cout << "Stem threshold: " << tb << std::endl;
   stemImage = ITKFilterFunctions<ImageType>::ThresholdAbove(stemImage, tb, 100);
   stemImage = ITKFilterFunctions<ImageType>::ThresholdBelow(stemImage, tb, 0);
-  
+    
+  StructuringElementType structuringElement2;
+  structuringElement2.SetRadius( 15 );
+  structuringElement2.CreateStructuringElement();
   OpeningFilter::Pointer openingFilter2 = OpeningFilter::New();
   openingFilter2->SetInput(stemImage);
-  openingFilter2->SetKernel(structuringElement);
+  openingFilter2->SetKernel(structuringElement2);
   openingFilter2->SetForegroundValue(100.0);
   openingFilter2->Update();
   stemImage = openingFilter2->GetOutput();
-
-  sigma[0] = 4.0 * stemSpacing[0]; 
-  sigma[1] = 4.0 * stemSpacing[1]; 
+  */
+  /*
+  sigma[0] = 2.0 * stemSpacing[0]; 
+  sigma[1] = 2.0 * stemSpacing[1]; 
   stemImage = ITKFilterFunctions<ImageType>::GaussSmooth(stemImage, sigma);
+  */
+
+
 
 #ifdef DEBUG
   ImageIO<ImageType>::WriteImage( stemImage, catStrings(prefix, "-stem-thres.tif") );
@@ -659,10 +790,10 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   movingMask->SetOrigin(stemOrigin);
 
   int stemYStart   = stemSize[1] * 0.2;
-  int stemXStart1  = stem.initialCenterIndex[0] - 2.5 * stem.initialWidth / stemSpacing[0];
+  int stemXStart1  = stem.initialCenterIndex[0] - 1.9 * stem.initialWidth / stemSpacing[0];
   int stemXEnd1    = stem.initialCenterIndex[0] - 1 * stem.initialWidth / stemSpacing[0];
   int stemXStart2  = stem.initialCenterIndex[0] + 1 * stem.initialWidth / stemSpacing[0];
-  int stemXEnd2    = stem.initialCenterIndex[0] + 2.5 * stem.initialWidth / stemSpacing[0];
+  int stemXEnd2    = stem.initialCenterIndex[0] + 1.9 * stem.initialWidth / stemSpacing[0];
 
 
   if(stemXStart1 < 0){
@@ -764,13 +895,13 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
     
   RegistrationType::ShrinkFactorsArrayType shrinkFactorsPerLevel;
   shrinkFactorsPerLevel.SetSize( 1 );
-  //shrinkFactorsPerLevel[0] = 2;
+  //shrinkFactorsPerLevel[0] = 1;
   //shrinkFactorsPerLevel[1] = 1;
   shrinkFactorsPerLevel[0] = 1;
 
   RegistrationType::SmoothingSigmasArrayType smoothingSigmasPerLevel;
   smoothingSigmasPerLevel.SetSize( 1 );
-  //smoothingSigmasPerLevel[0] = 1;
+  //smoothingSigmasPerLevel[0] = stem.initialWidth / 2.0 * imageSpacing[0];
   //smoothingSigmasPerLevel[1] = 0;
   smoothingSigmasPerLevel[0] = 0;
 
