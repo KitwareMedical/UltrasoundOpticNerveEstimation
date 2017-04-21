@@ -570,11 +570,11 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   ////
   ImageType::IndexType desiredStart;
   desiredStart[0] = eye.center[0] - 0.9 * eye.initialRadius;
-  desiredStart[1] = eye.initialCenter[1] + 1.1 * eye.initialRadiusY ;
+  desiredStart[1] = eye.initialCenter[1] + 1.2 * eye.initialRadiusY ;
  
   ImageType::SizeType desiredSize;
   desiredSize[0] = 1.8 * eye.initialRadius;
-  desiredSize[1] = 0.8 * eye.initialRadius;
+  desiredSize[1] = 1 * eye.initialRadius;
   if(desiredStart[1] + desiredSize[1] > imageSize[1] ){
     desiredSize[1] = imageSize[1] - desiredStart[1];
   }
@@ -789,7 +789,7 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   movingMask->SetSpacing(stemSpacing);
   movingMask->SetOrigin(stemOrigin);
 
-  int stemYStart   = stemSize[1] * 0.2;
+  int stemYStart   = stemSize[1] * 0.1;
   int stemXStart1  = stem.initialCenterIndex[0] - 1.9 * stem.initialWidth / stemSpacing[0];
   int stemXEnd1    = stem.initialCenterIndex[0] - 1 * stem.initialWidth / stemSpacing[0];
   int stemXStart2  = stem.initialCenterIndex[0] + 1 * stem.initialWidth / stemSpacing[0];
