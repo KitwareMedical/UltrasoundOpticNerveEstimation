@@ -47,8 +47,8 @@ class ITKFilterFunctions{
   static ImagePointer Rescale(ImagePointer image, PixelType minI, PixelType maxI){
     RescaleFilterPointer rescale = RescaleFilter::New();
     rescale->SetInput(image);
-    rescale->SetOutputMaximum(100.0);
-    rescale->SetOutputMinimum(0.0);
+    rescale->SetOutputMaximum( maxI );
+    rescale->SetOutputMinimum( minI );
     rescale->Update();
 
     return rescale->GetOutput();
@@ -125,23 +125,12 @@ class ITKFilterFunctions{
       ImageIndex index;
       index[0] = i;
       for(int j=0; j<w; j++){
-	index[1] = j;
-	image->SetPixel(index, 100);
-	index[1] = size[1]-1-j;
-	image->SetPixel(index, 100);
+	      index[1] = j;
+	      image->SetPixel(index, 100);
+	      index[1] = size[1]-1-j;
+	      image->SetPixel(index, 100);
       }
-    }  
-    for(int i=0; i<size[1]; i++){
-      ImageIndex index;
-      index[1] = i;
-      for(int j=0; j<w; j++){
-        index[0] = j;
-        image->SetPixel(index, 100);
-        index[0] = size[0]-1-j;
-        image->SetPixel(index, 100);
-      }
-    }
-  
+    }    
   };
 
   
