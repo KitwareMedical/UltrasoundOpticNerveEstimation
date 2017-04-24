@@ -8,6 +8,7 @@
 #include "itkSmoothingRecursiveGaussianImageFilter.h"
 #include "itkSubtractImageFilter.h"
 #include "itkAddImageFilter.h"
+#include "itkBinaryThresholdImageFilter.h"
 
 template < typename TImage >
 class ITKFilterFunctions{
@@ -42,7 +43,9 @@ class ITKFilterFunctions{
     
     typedef typename itk::AddImageFilter<Image, Image> AddFilter;
     typedef typename AddFilter::Pointer AddFilterPointer;
-
+  
+    typedef itk::BinaryThresholdImageFilter <Image, Image> BinaryThresholdFilter;
+    typedef typename BinaryThresholdFilter::Pointer BinaryThresholdFilterPointer;
 
   static ImagePointer Rescale(ImagePointer image, PixelType minI, PixelType maxI){
     RescaleFilterPointer rescale = RescaleFilter::New();
@@ -83,7 +86,17 @@ class ITKFilterFunctions{
     thresholdFilter->Update();  
     return thresholdFilter->GetOutput(); 
   };
- 
+   
+  static ImagePointer BinaryThreshold(ImagePointer image, PixelType tLow, PixelType tHigh, PixelType inside, PixelType outside){
+    BinaryThresholdFilterPointer thresholdFilter  = BinaryThresholdFilter::New();
+    thresholdFilter->SetInput( image);
+    thresholdFilter->SetLowerThreshold( tLow );
+    thresholdFilter->SetUpperThreshold( tHigh );
+    thresholdFilter->SetOutsideValue( outside );
+    thresholdFilter->SetInsideValue( inside );
+    thresholdFilter->Update();  
+    return thresholdFilter->GetOutput(); 
+  };
 
   static ImagePointer Subtract(ImagePointer i1, ImagePointer i2){
     SubtractFilterPointer subtract = SubtractFilter::New();

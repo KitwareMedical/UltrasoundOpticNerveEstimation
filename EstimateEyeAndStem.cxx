@@ -234,9 +234,9 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
   ////
   //2. Find center and size of eye using a distance transform of binarized image
   ////
-  //TODO should use binarize filter
-  image = ITKFilterFunctions<ImageType>::ThresholdAbove(image, 25, 100);
-  image = ITKFilterFunctions<ImageType>::ThresholdBelow(image, 25,  0);
+  image = ITKFilterFunctions<ImageType>::BinaryThreshold(image, -1, 25, 0, 100);
+  //image = ITKFilterFunctions<ImageType>::ThresholdAbove(image, 25, 100);
+  //image = ITKFilterFunctions<ImageType>::ThresholdBelow(image, 25,  0);
 
   StructuringElementType structuringElement;
   structuringElement.SetRadius( 50 );
@@ -429,7 +429,25 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
   metric->SetFixedInterpolator( fixedInterpolator );  
  
   ImageType::Pointer ellipseMask = CreateEllipseImage( imageSpacing, imageSize, imageOrigin, 
-		                                       eye.initialCenter, r1*1.1, r2*1.1, 0, 100 ); 
+		                                       eye.initialCenter, r1*1.1, r2*1.1, 0, 100 );
+  //remove left and right corners from mask
+  for(int i=0; i<eye.initialCenterIndex[0] - 0.9*r1; i++){
+    ImageType::IndexType index;
+    index[0] = i; 
+    for(int j=eye.initialCenterIndex[1] - 0.4 * r2; j < eye.initialCenterIndex[1] + 0.4 * r2; j++){
+      index[1]=j;
+      ellipseMask->SetPixel(index, 0);
+    }
+  }
+  for(int i=eye.initialCenterIndex[0] + 0.9*r1; i < imageSize[0]; i++){
+    ImageType::IndexType index;
+    index[0] = i; 
+    for(int j=eye.initialCenterIndex[1] - 0.4 * r2; j < eye.initialCenterIndex[1] + 0.4 * r2; j++){
+      index[1]=j;
+      ellipseMask->SetPixel(index, 0);
+    }
+  } 
+ 
   
   CastFilter::Pointer castFilter3 = CastFilter::New();
   castFilter3->SetInput( ellipseMask );
@@ -678,10 +696,11 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   ImageIO<ImageType>::WriteImage( stemImage, catStrings(prefix, "-stem-smooth.tif") );
 #endif 
    
-  //TODO: Use binarize filter
   ImageType::Pointer stemImageB = 
-	       ITKFilterFunctions<ImageType>::ThresholdAbove( stemImage,  STEM_THRESHOLD_DISTANCE, 100 );
-  stemImageB = ITKFilterFunctions<ImageType>::ThresholdBelow( stemImageB, STEM_THRESHOLD_DISTANCE,   0 );
+	  ITKFilterFunctions<ImageType>::BinaryThreshold(stemImage, -1, STEM_THRESHOLD_DISTANCE, 0, 100);
+  //ImageType::Pointer stemImageB = 
+  //	       ITKFilterFunctions<ImageType>::ThresholdAbove( stemImage,  STEM_THRESHOLD_DISTANCE, 100 );
+  //stemImageB = ITKFilterFunctions<ImageType>::ThresholdBelow( stemImageB, STEM_THRESHOLD_DISTANCE,   0 );
 
   //sigma[0] = 5.0 * stemSpacing[0]; 
   //sigma[1] = 5.0 * stemSpacing[1]; 
@@ -796,8 +815,10 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   
   float tb = 65;
   std::cout << "Stem threshold: " << tb << std::endl;
-  stemImage = ITKFilterFunctions<ImageType>::ThresholdAbove(stemImage, tb, 100);
-  stemImage = ITKFilterFunctions<ImageType>::ThresholdBelow(stemImage, tb, 0);
+  stemImage = 
+	  ITKFilterFunctions<ImageType>::BinaryThreshold(stemImage, -1, tb, 0, 100);
+  //stemImage = ITKFilterFunctions<ImageType>::ThresholdAbove(stemImage, tb, 100);
+  //stemImage = ITKFilterFunctions<ImageType>::ThresholdBelow(stemImage, tb, 0);
   
 /*  
   StructuringElementType structuringElement2;
@@ -1017,7 +1038,7 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
 	  //return EXIT_FAILURE;
   }
 
-
+  
   const double bestValue = optimizer->GetValue();
   std::cout << "Result = " << std::endl;
   std::cout << " Metric value  = " << bestValue          << std::endl;
