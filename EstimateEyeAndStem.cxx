@@ -1,7 +1,85 @@
+//This application estimates the width of the optic nerve from
+//a B-mode ultrasound image. 
+//
+//The inut image is expected to be oriented such that the optic nerve 
+//is towards the bottom of the image and depth is along the y-Axis.
+//
+//The computation involves two main steps:
+// 1. Estimation of the eye orb location and minor and major axis length
+// 2. Estimation of the optic nerve width
+//Both steps include several substeps which results in many parameters 
+//that can be tuned if needed.
+//
+//EYE ESTIMATION:
+//---------------
+//(sub-steps indicate that a new image was created and the pipeline will use 
+//the image from the last step at the same granularity)
+// 
+// A) Prepare moving Image:
+//  1. Rescale the image to 0, 100
+//  2. Adding a horizontal border
+//  3. Gaussian smoothing
+//  4. Binary Thresholding
+//  4.1 Morphological closing
+//  4.2 Adding a vertical border
+//  4.3 Distance transfrom
+//  4.4 Calculate inital center and radius from distance transform (Max)
+//  4.4.1 Distance transform in X and Y seperately on region of interest 
+//   	  around slabs of the center
+//  4.4.2 Calculate inital x and y radius from those distamnce transforms
+//  5. Gaussian smoothing, threshold and rescale
+// 
+// B) Prepare fixed image
+//  1. Create ellipse ring image by subtract two ellipse with different 
+//     radii. The radii are based on the intial radius estimation above.
+//  2. Gaussian smoothing, threshold, rescale
+//
+// C) Affine registration
+//  1. Create a mask image that only measure mismatch in an ellipse region
+//     macthing the create ellipse image, but not including left and right corners 
+//     of the eye (they are often black but sometimes white)
+//  2. Affine registration centered on the fixed ellipse image
+//  3. Compute minor and major axis by pushing the radii from the created ellipse
+//     image through the computed transform
+// 
+//OPTIC NERVE ESTIMATION:
+//-----------------------
+//(sub-steps indicate that a new image was created and the pipeline will use 
+//the image from the last step at the same granularity)
+// 
+// A) Prepare moving image
+//  1. Extract optic nerve region below the eye using the eye location and 
+//     size estimates
+//  2. Gaussian smoothing
+//  3. Rescale individual rows to 0 100
+//  3.1 Binary threshold
+//  3.2 Morphological opening
+//  3.3 Add vertical border
+//  3.4 Add small horizontal border
+//  3.5 Distance transform
+//  3.6 Calcuate inital optic nerve width and center
+//  4. Scale rows 0, 100 on each side of the optice nerve center independently
+//  5. Binary threhsold
+//  5.1 Add vertica border
+//  5.2 Add horizontal border
+//  5.3 Distance transform
+//  5.4 Refine intial estimates
+//  6. Gaussian smoothing
+//
+// B) Prepare fixed image
+//  1. Create a black and white image with two bars that
+//     are an intial estimate of the width apart
+//  2. Gauss smoothing
+//
+// C) Similarity transfrom registration
+//  1. Create a mask that includes the two bars only
+//  2. Similarity transfrom registration centered on the fixed bars image
+//  3. Compute stem width by pushing intital width through the transform
+//
+
+
+//If DEBUG is defined several intermedate images are stored
 #define DEBUG
-
-
-#define STEM_THRESHOLD_DISTANCE  75
 
 
 #include "itkImage.h"
@@ -200,7 +278,13 @@ ImageType::Pointer CreateEllipseImage( ImageType::SpacingType spacing,
 
 
 
-//Fit an ellipse to an eye ultrasound image
+//Fit an ellipse to an eye ultrasound image in three main steps
+// A) Prepare moving Image
+// B) Prepare fixed image
+// C) Affine registration
+//
+//For a detailed descritpion and overview of the whole pipleine
+//see the top of this file
 Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
 
   std::cout << "--- Fitting Eye ---" << std::endl << std::endl;
@@ -208,8 +292,14 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
   Eye eye;
 
   ////
-  //1. Preprcess input image
-  ////
+  //A. Prepare fixed image
+  ///
+
+  //-- Steps 1 to 3
+  //   1. Rescale the image to 0, 100
+  //   2. Adding a horizontal border
+  //   3. Gaussian smoothing
+
   ImageType::Pointer image = ITKFilterFunctions<ImageType>::Rescale(inputImage, 0, 100);
 
   ImageType::SpacingType imageSpacing = image->GetSpacing();
@@ -227,19 +317,24 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
   sigma[0] = 10 * imageSpacing[0]; 
   sigma[1] = 10 * imageSpacing[1]; 
   
-  ITKFilterFunctions<ImageType>::AddHorizontalBorder(image, 20); 
+  ITKFilterFunctions<ImageType>::AddHorizontalBorder(image, 30); 
   image = ITKFilterFunctions<ImageType>::GaussSmooth(image, sigma);
 
 
-  ////
-  //2. Find center and size of eye using a distance transform of binarized image
-  ////
+  //-- Step 4
+  //   Binary Thresholding
+
   image = ITKFilterFunctions<ImageType>::BinaryThreshold(image, -1, 25, 0, 100);
-  //image = ITKFilterFunctions<ImageType>::ThresholdAbove(image, 25, 100);
-  //image = ITKFilterFunctions<ImageType>::ThresholdBelow(image, 25,  0);
+
+
+  //-- Steps 4.1 through 4.4
+  //   4.1 Morphological closing
+  //   4.2 Adding a vertical border
+  //   4.3 Distance transfrom
+  //   4.4 Calculate inital center and radius from distance transform (Max)
 
   StructuringElementType structuringElement;
-  structuringElement.SetRadius( 50 );
+  structuringElement.SetRadius( 100 );
   structuringElement.CreateStructuringElement();
   ClosingFilter::Pointer closingFilter = ClosingFilter::New();
   closingFilter->SetInput(image);
@@ -252,7 +347,8 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
   castFilter->SetInput( image );
   castFilter->Update();
   UnsignedCharImageType::Pointer  sdImage = castFilter->GetOutput();
-  //add white border
+  
+  
   ITKFilterFunctions<UnsignedCharImageType>::AddVerticalBorder( sdImage, 50);
 
   SignedDistanceFilter::Pointer signedDistanceFilter = SignedDistanceFilter::New();
@@ -278,8 +374,16 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
   std::cout << "Eye inital center: " << eye.initialCenterIndex << std::endl;
   std::cout << "Eye initial radius: "<< eye.initialRadius << std::endl;
 
-  //Compute vertical distance to eye border
   
+
+
+  //-- Steps 4.4.1 through 4.4.2
+  //   4.4.1 Distance transform in X and Y seperately on region of interest 
+  //   	  around slabs of the center
+  //  4.4.2 Calculate inital x and y radius from those distamnce transforms
+
+
+  //Compute vertical distance to eye border
   CastFilter::Pointer castFilter2 = CastFilter::New();
   castFilter2->SetInput( image );
   castFilter2->Update();
@@ -356,7 +460,9 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
   std::cout << "Eye initial radiusX: "<< eye.initialRadiusX << std::endl;
 
 
-  //smooth thresholded image for registration
+  //--Step 5
+  //  Gaussian smoothing, threshold and rescale
+
   sigma[0] = 10 * imageSpacing[0]; 
   sigma[1] = 10 * imageSpacing[1]; 
   ImageType::Pointer imageSmooth = ITKFilterFunctions<ImageType>::GaussSmooth(image, sigma);
@@ -367,14 +473,30 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
   ImageIO<ImageType>::WriteImage(imageSmooth, catStrings(prefix, "-eye-smooth.tif") );
 #endif
 
+
+  
   ////
-  //4. Create ellipse image
+  //B. Prepare fixed image 
   ////
-  double mean = 100;//statisticsFilter->GetMean();   
+
+
+  //-- Steps 1 through 2
+  //   1. Create ellipse ring image by subtract two ellipse with different 
+  //      radii. The radii are based on the intial radius estimation above.
+  //   2. Gaussian smoothing, threshold, rescale
+
+  double outside = 100;  
+  //intial guess of major axis
   double r1 = 1.3 * eye.initialRadiusY;
+  //inital guess of minor axis
   double r2 = eye.initialRadiusY;
-  ImageType::Pointer e1 = CreateEllipseImage( imageSpacing, imageSize, imageOrigin, eye.initialCenter, r1, r2, mean);
-  ImageType::Pointer e2 = CreateEllipseImage( imageSpacing, imageSize, imageOrigin, eye.initialCenter, r1*1.2, r2*1.2, mean);
+  //width of the ellipse ring rf*r1, rf*r2
+  double rf = 1.4;
+  ImageType::Pointer e1 = CreateEllipseImage( imageSpacing, imageSize, imageOrigin, 
+		                               eye.initialCenter, r1, r2, outside);
+  ImageType::Pointer e2 = CreateEllipseImage( imageSpacing, imageSize, imageOrigin, 
+		                              eye.initialCenter, r1*rf, r2*rf, outside );
+
   ImageType::Pointer ellipse = ITKFilterFunctions<ImageType>::Subtract(e1, e2);
 
   sigma[0] = 10 * imageSpacing[0]; 
@@ -395,8 +517,38 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
 
 
   ////
-  //5. Setup registration
+  //C. Affine registration
   ////
+ 
+  //-- Step 1
+  //   Create a mask image that only measure mismatch in an ellipse region
+  //   macthing the create ellipse image, but not including left and right corners 
+  //   of the eye (they are often black but sometimes white)
+
+  ImageType::Pointer ellipseMask = CreateEllipseImage( imageSpacing, imageSize, imageOrigin, 
+		                                       eye.initialCenter, r1*(rf+1)/2, r2*(rf+1)/2, 0, 100 );
+  //remove left and right corners from mask
+  for(int i=0; i<eye.initialCenterIndex[0] - 0.9*r1; i++){
+    ImageType::IndexType index;
+    index[0] = i; 
+    for(int j=eye.initialCenterIndex[1] - 0.4 * r2; j < eye.initialCenterIndex[1] + 0.4 * r2; j++){
+      index[1]=j;
+      ellipseMask->SetPixel(index, 0);
+    }
+  }
+  for(int i=eye.initialCenterIndex[0] + 0.9*r1; i < imageSize[0]; i++){
+    ImageType::IndexType index;
+    index[0] = i; 
+    for(int j=eye.initialCenterIndex[1] - 0.4 * r2; j < eye.initialCenterIndex[1] + 0.4 * r2; j++){
+      index[1]=j;
+      ellipseMask->SetPixel(index, 0);
+    }
+  } 
+   
+
+  //-- Step 2
+  //   Affine registration centered on the fixed ellipse image
+
   AffineTransformType::Pointer transform = AffineTransformType::New();
   transform->SetCenter(eye.initialCenter);
 
@@ -427,27 +579,7 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
 
   metric->SetMovingInterpolator( movingInterpolator );
   metric->SetFixedInterpolator( fixedInterpolator );  
- 
-  ImageType::Pointer ellipseMask = CreateEllipseImage( imageSpacing, imageSize, imageOrigin, 
-		                                       eye.initialCenter, r1*1.1, r2*1.1, 0, 100 );
-  //remove left and right corners from mask
-  for(int i=0; i<eye.initialCenterIndex[0] - 0.9*r1; i++){
-    ImageType::IndexType index;
-    index[0] = i; 
-    for(int j=eye.initialCenterIndex[1] - 0.4 * r2; j < eye.initialCenterIndex[1] + 0.4 * r2; j++){
-      index[1]=j;
-      ellipseMask->SetPixel(index, 0);
-    }
-  }
-  for(int i=eye.initialCenterIndex[0] + 0.9*r1; i < imageSize[0]; i++){
-    ImageType::IndexType index;
-    index[0] = i; 
-    for(int j=eye.initialCenterIndex[1] - 0.4 * r2; j < eye.initialCenterIndex[1] + 0.4 * r2; j++){
-      index[1]=j;
-      ellipseMask->SetPixel(index, 0);
-    }
-  } 
- 
+
   
   CastFilter::Pointer castFilter3 = CastFilter::New();
   castFilter3->SetInput( ellipseMask );
@@ -511,9 +643,9 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
   AffineTransformType::Pointer inverse = AffineTransformType::New();
   transform->GetInverse( inverse );
 
-  ////
-  //6. Create registered ellipse image
-  ////
+
+
+  //Created registered ellipse image 
   ResampleFilterType::Pointer resampler = ResampleFilterType::New();
   resampler->SetInput( ellipse );
   resampler->SetTransform( inverse );
@@ -554,9 +686,11 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
 #endif
 
 
-  ////
-  // 7. Transfrom initial estimates
-  ////
+  
+  //-- Step 3
+  //   Compute minor and major axis by pushing the radii from the created ellipse
+  //   image through the computed transform
+
   AffineTransformType::InputPointType tCenter;
   tCenter[0] = eye.initialCenter[0];
   tCenter[1] = eye.initialCenter[1];
@@ -601,25 +735,36 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
 
 
 
-//Fit stem based on eye location and size
-//Fit is done using an idealized stem image and fit it 
-//to the region the stem is expected to be located based on 
-//the eye information.
+//Fit two bars to an ultrasound image based on eye location and size
+// A) Prepare moving Image
+// B) Prepare fixed image
+// C) Similarity registration
+//
+//For a detailed descritpion and overview of the whole pipleine
+//see the top of this file
+
 Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix){
-  std::cout << "--- Fit stem ---" << std::endl << std::endl;
   
+  std::cout << "--- Fit stem ---" << std::endl << std::endl;
   
   Stem stem;
   
+  
+  ////
+  //A) Prepare moving image
+  ////
+  
+  
+  //-- Step 1
+  //   Extract optic nerve region below the eye using the eye location and 
+  //   size estimates.
+
   ImageType::SpacingType imageSpacing = inputImage->GetSpacing();
   ImageType::RegionType imageRegion = inputImage->GetLargestPossibleRegion();
   ImageType::SizeType imageSize = imageRegion.GetSize();
   ImageType::PointType imageOrigin = inputImage->GetOrigin();
 
-  ////
-  //3. Extract cranial stem region of interest and process 
-  //   to yield a binary image of the stem. 
-  ////
+
   ImageType::IndexType desiredStart;
   desiredStart[0] = eye.center[0] - 0.9 * eye.major;
   desiredStart[1] = eye.center[1] + 1 * eye.minor ;
@@ -676,16 +821,17 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
 
 
 
-  ////
-  //4. Find center and approximate width of stem using a distance transform 
-  ////
+  //-- Step 2 through 3
+  //   2. Gaussian smoothing
+  //   3. Rescale individual rows to 0 100
+
   ITKFilterFunctions<ImageType>::SigmaArrayType sigma;
   sigma[0] = 1.5 * stemSpacing[0]; 
   sigma[1] = 20 * stemSpacing[1]; 
   //sigma[1] = stemSize[1]/12.0 * stemSpacing[1]; 
   ImageType::Pointer stemImage = ITKFilterFunctions<ImageType>::GaussSmooth( stemImageOrig, sigma);
  
-  //Reascle indiviudal rows 
+  //Rescale indiviudal rows 
   ITKFilterFunctions<ImageType>::RescaleRows(stemImage);
 
 
@@ -695,17 +841,18 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
 #ifdef DEBUG
   ImageIO<ImageType>::WriteImage( stemImage, catStrings(prefix, "-stem-smooth.tif") );
 #endif 
-   
+
+
+  //-- Step 3.1 through 3.6 
+  //   3.1 Binary threshold
+  //   3.2 Morphological opening
+  //   3.3 Add vertical border
+  //   3.4 Add small horizontal border
+  //   3.5 Distance transform
+  //   3.6 Calcuate inital optic nerve width and center   
+  
   ImageType::Pointer stemImageB = 
-	  ITKFilterFunctions<ImageType>::BinaryThreshold(stemImage, -1, STEM_THRESHOLD_DISTANCE, 0, 100);
-  //ImageType::Pointer stemImageB = 
-  //	       ITKFilterFunctions<ImageType>::ThresholdAbove( stemImage,  STEM_THRESHOLD_DISTANCE, 100 );
-  //stemImageB = ITKFilterFunctions<ImageType>::ThresholdBelow( stemImageB, STEM_THRESHOLD_DISTANCE,   0 );
-
-  //sigma[0] = 5.0 * stemSpacing[0]; 
-  //sigma[1] = 5.0 * stemSpacing[1]; 
-  //stemImage = ITKFilterFunctions<ImageType>::GaussSmooth(stemImage, sigma);
-
+	  ITKFilterFunctions<ImageType>::BinaryThreshold(stemImage, -1, 75, 0, 100);
 
 #ifdef DEBUG
   ImageIO<ImageType>::WriteImage( stemImageB, catStrings(prefix, "-stem-sd-thres.tif") );
@@ -740,12 +887,6 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   stemDistanceFilter->Update();
   ImageType::Pointer stemDistance = stemDistanceFilter->GetOutput();
 
-  //This will distort the inital stem width estimate
-  //sigma[0] = 10.0 * stemSpacing[0]; 
-  //sigma[1] = 10.0 * stemSpacing[1]; 
-  //stemDistance = ITKFilterFunctions<ImageType>::GaussSmooth(stemDistance, sigma);
-
-  
 #ifdef DEBUG
   ImageIO<ImageType>::WriteImage( stemDistance, catStrings(prefix, "-stem-distance.tif") );
 #endif
@@ -764,7 +905,9 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   std::cout << "Approximate stem center Index: " << stem.initialCenterIndex << std::endl;
   
 
-  //Rescale rows left and right of the approximate center to 0 - 100
+  //-- Step 4 
+  //   Rescale rows left and right of the approximate center to 0 - 100
+
   float centerIntensity = stemImage->GetPixel( stem.initialCenterIndex );
   std::cout << "Approximate stem center intensity: " << centerIntensity << std::endl;
   for(int i=0; i<stemSize[1]; i++){
@@ -812,13 +955,13 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
 #endif
 
 
-  
+
+  //-- Step 5 
+  //   Binary threshold
+
   float tb = 65;
   std::cout << "Stem threshold: " << tb << std::endl;
-  stemImage = 
-	  ITKFilterFunctions<ImageType>::BinaryThreshold(stemImage, -1, tb, 0, 100);
-  //stemImage = ITKFilterFunctions<ImageType>::ThresholdAbove(stemImage, tb, 100);
-  //stemImage = ITKFilterFunctions<ImageType>::ThresholdBelow(stemImage, tb, 0);
+  stemImage =   ITKFilterFunctions<ImageType>::BinaryThreshold(stemImage, -1, tb, 0, 100);
   
 /*  
   StructuringElementType structuringElement2;
@@ -835,9 +978,12 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
 
 
 
-  ////
-  // Do distance transfrom on scaled image again to get a better estimate of the inital width
-  ////
+  //-- Step 5.1 through 5.4
+  //  5.1 Add vertica border
+  //  5.2 Add horizontal border
+  //  5.3 Distance transform
+  //  5.4 Refine intial estimates
+
   CastFilter::Pointer stemCastFilter2 = CastFilter::New();
   stemCastFilter2->SetInput( stemImage );
   stemCastFilter2->Update();
@@ -880,7 +1026,8 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
 
 
 
-  //Add a bit of smoothing for the registration process
+  //-- Step 6
+  //   Add a bit of smoothing for the registration process
   sigma[0] = 3.0 * stemSpacing[0]; 
   sigma[1] = 3.0 * stemSpacing[1]; 
   stemImage = ITKFilterFunctions<ImageType>::GaussSmooth(stemImage, sigma);
@@ -890,9 +1037,19 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   ImageIO<ImageType>::WriteImage( stemImage, catStrings(prefix, "-stem-thres.tif") );
 #endif
 
-  ////
-  //5. Create artifical stem image to fit to region of interest
-  ////
+
+
+  /////
+  //B. Prepare fixed image.
+  //  Create artifical stem image to fit to region of interest.
+  /////
+  
+  //--Step 1 and C) 1
+  //  Create a black and white image with two bars that
+  //  are an intial estimate of the width apart. 
+  //  Create registration mask image.
+
+
   ImageType::Pointer moving = ImageType::New();
   moving->SetRegions(stemRegion);
   moving->Allocate();
@@ -947,6 +1104,11 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   ImageIO<UnsignedCharImageType>::WriteImage( movingMask, catStrings(prefix, "-stem-mask.tif") );
 #endif
 
+
+  //-- Step 2
+  //   Gauss smoothing
+
+
   sigma[0] = 3.0 * stemSpacing[0]; 
   sigma[1] = 3.0 * stemSpacing[1]; 
   moving = ITKFilterFunctions<ImageType>::GaussSmooth(moving, sigma);
@@ -959,8 +1121,13 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
 
 
   ////
-  //6. Registration of artifical stem image to threhsold stem image
+  //C. Registration of artifical stem image to threhsold stem image
   ////
+  
+  //-- Step 2 (Step 1 was inclued in B)
+  //   Similarity transfrom registration centered on the fixed bars image
+
+
   SimilarityTransformType::Pointer transform = SimilarityTransformType::New();
   transform->SetCenter( stem.initialCenter );
 
@@ -978,15 +1145,14 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   optimizer->SetMaximumNumberOfFunctionEvaluations( 20000 );
 
   
-  //Using a Quasi-Newton method, amke sure scales are set to identity to no destory the approximation of the Hessian
+  //Using a Quasi-Newton method, make sure scales are set to identity to 
+  //not destory the approximation of the Hessian
   std::cout << transform->GetNumberOfParameters() << std::endl;
   OptimizerType::ScalesType scales( transform->GetNumberOfParameters() );
   scales[0] = 1.0;
   scales[1] = 1.0;
   scales[2] = 1.0; 
   scales[3] = 1.0; 
-  //scales[4] = 1.0; 
-  //scales[5] = 1.0;  
   optimizer->SetScales( scales );
 
 
@@ -1000,8 +1166,6 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
 
   registration->SetMetric(        metric        );
   registration->SetOptimizer(     optimizer     );
-  //registration->SetFixedImage(    imageSmooth    );
-  //registration->SetMovingImage(   ellipse   );
   registration->SetMovingImage(    stemImage    );
   registration->SetFixedImage(   moving  );
 
@@ -1051,9 +1215,8 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   SimilarityTransformType::Pointer inverse = SimilarityTransformType::New();
   transform->GetInverse( inverse );
 
-  ////
-  //7. Create registered overlay image
-  ////
+
+  // Create registered bars image
   ResampleFilterType::Pointer resampler = ResampleFilterType::New();
   resampler->SetInput( moving );
   resampler->SetTransform( inverse );
@@ -1099,9 +1262,9 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
 
 
 
-  ////
-  // 7. Transfrom initial estimates
-  ////
+  //-- Step 3
+  //   Compute stem width by pushing intital width through the transform
+
   SimilarityTransformType::InputPointType tCenter;
   tCenter[0] = stem.initialCenter[0];
   tCenter[1] = stem.initialCenter[1];

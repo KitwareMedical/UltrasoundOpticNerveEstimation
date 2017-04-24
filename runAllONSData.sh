@@ -21,3 +21,5 @@ time ../Code/bin/EstimateEyeAndStem -p ./processed/020 -i 020.PNG > ./processed/
 time ../Code/bin/EstimateEyeAndStem -p ./processed/021 -i 021.PNG > ./processed/021.txt
 time ../Code/bin/EstimateEyeAndStem -p ./processed/022 -i 022.PNG > ./processed/022.txt
 time ../Code/bin/EstimateEyeAndStem -p ./processed/023 -i 023.PNG > ./processed/023.txt
+
+awk  '/Estimated optic nerve width: /{print $NF}' processed/*.txt
