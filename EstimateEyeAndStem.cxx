@@ -334,7 +334,7 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
   //   4.4 Calculate inital center and radius from distance transform (Max)
 
   StructuringElementType structuringElement;
-  structuringElement.SetRadius( 100 );
+  structuringElement.SetRadius( 70 );
   structuringElement.CreateStructuringElement();
   ClosingFilter::Pointer closingFilter = ClosingFilter::New();
   closingFilter->SetInput(image);
@@ -491,7 +491,7 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
   //inital guess of minor axis
   double r2 = eye.initialRadiusY;
   //width of the ellipse ring rf*r1, rf*r2
-  double rf = 1.4;
+  double rf = 1.3;
   ImageType::Pointer e1 = CreateEllipseImage( imageSpacing, imageSize, imageOrigin, 
 		                               eye.initialCenter, r1, r2, outside);
   ImageType::Pointer e2 = CreateEllipseImage( imageSpacing, imageSize, imageOrigin, 
@@ -766,11 +766,11 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
 
 
   ImageType::IndexType desiredStart;
-  desiredStart[0] = eye.center[0] - 0.9 * eye.major;
+  desiredStart[0] = eye.center[0] - 1 * eye.major;
   desiredStart[1] = eye.center[1] + 1 * eye.minor ;
  
   ImageType::SizeType desiredSize;
-  desiredSize[0] = 1.8 * eye.major;
+  desiredSize[0] = 2 * eye.major;
   desiredSize[1] = 1.2 * eye.minor;
 
   if(desiredStart[1] > imageSize[1] ){
