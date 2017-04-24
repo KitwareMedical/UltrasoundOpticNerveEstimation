@@ -712,7 +712,7 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   UnsignedCharImageType::Pointer stemImage2 = stemCastFilter->GetOutput();
 
   ITKFilterFunctions<UnsignedCharImageType>::AddVerticalBorder(stemImage2, 20);
-  ITKFilterFunctions<UnsignedCharImageType>::AddHorizontalBorder(stemImage2, 5);
+  ITKFilterFunctions<UnsignedCharImageType>::AddHorizontalBorder(stemImage2, 2);
 
   SignedDistanceFilter::Pointer stemDistanceFilter = SignedDistanceFilter::New();
   stemDistanceFilter->SetInput( stemImage2 );
@@ -793,9 +793,8 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
 #endif
 
 
-  //Not needed with above scaled image
   
-  float tb = 50;
+  float tb = 65;
   std::cout << "Stem threshold: " << tb << std::endl;
   stemImage = ITKFilterFunctions<ImageType>::ThresholdAbove(stemImage, tb, 100);
   stemImage = ITKFilterFunctions<ImageType>::ThresholdBelow(stemImage, tb, 0);
@@ -811,13 +810,60 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   openingFilter2->Update();
   stemImage = openingFilter2->GetOutput();
 */
+ 
+
+
+
+  ////
+  // Do distance transfrom on scaled image again to get a better estimate of the inital width
+  ////
+  CastFilter::Pointer stemCastFilter2 = CastFilter::New();
+  stemCastFilter2->SetInput( stemImage );
+  stemCastFilter2->Update();
+  UnsignedCharImageType::Pointer stemImage3 = stemCastFilter2->GetOutput();
+
+  ITKFilterFunctions<UnsignedCharImageType>::AddVerticalBorder(stemImage3, 20);
+  ITKFilterFunctions<UnsignedCharImageType>::AddHorizontalBorder(stemImage3, 2);
   
-  sigma[0] = 2.0 * stemSpacing[0]; 
-  sigma[1] = 2.0 * stemSpacing[1]; 
+  SignedDistanceFilter::Pointer stemDistanceFilter2 = SignedDistanceFilter::New();
+  stemDistanceFilter2->SetInput( stemImage3 );
+  stemDistanceFilter2->SetInsideValue(100);
+  stemDistanceFilter2->SetOutsideValue(0);
+  stemDistanceFilter2->Update();
+  ImageType::Pointer stemDistance2 = stemDistanceFilter2->GetOutput();
+
+
+  
+#ifdef DEBUG
+  ImageIO<ImageType>::WriteImage( stemDistance, catStrings(prefix, "-stem-scaled-distance.tif") );
+#endif
+ 
+  //Compute max of distance transfrom 
+  ImageCalculatorFilterType::Pointer stemCalculatorFilter2  = ImageCalculatorFilterType::New ();
+  stemCalculatorFilter2->SetImage( stemDistance2 );
+  stemCalculatorFilter2->Compute();
+
+  stem.initialWidth = stemCalculatorFilter2->GetMaximum() ;
+  stem.initialCenterIndex = stemCalculatorFilter2->GetIndexOfMaximum();
+  stemImage->TransformIndexToPhysicalPoint(stem.initialCenterIndex, stem.initialCenter);
+
+  std::cout << "Refined approximate width of stem: " <<  2 * stem.initialWidth << std::endl;
+  std::cout << "Refined approximate stem center: " << stem.initialCenter << std::endl;
+  std::cout << "Refined approximate stem center Index: " << stem.initialCenterIndex << std::endl;
+
+
+
+
+
+
+
+
+
+  //Add a bit of smoothing for the registration process
+  sigma[0] = 3.0 * stemSpacing[0]; 
+  sigma[1] = 3.0 * stemSpacing[1]; 
   stemImage = ITKFilterFunctions<ImageType>::GaussSmooth(stemImage, sigma);
   
-
-
 
 #ifdef DEBUG
   ImageIO<ImageType>::WriteImage( stemImage, catStrings(prefix, "-stem-thres.tif") );
@@ -841,10 +887,10 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   movingMask->SetOrigin(stemOrigin);
 
   int stemYStart   = eye.initialRadiusY * 0.05;
-  int stemXStart1  = stem.initialCenterIndex[0] - 1.9 * stem.initialWidth / stemSpacing[0];
+  int stemXStart1  = stem.initialCenterIndex[0] - 1.5 * stem.initialWidth / stemSpacing[0];
   int stemXEnd1    = stem.initialCenterIndex[0] - 1 * stem.initialWidth / stemSpacing[0];
   int stemXStart2  = stem.initialCenterIndex[0] + 1 * stem.initialWidth / stemSpacing[0];
-  int stemXEnd2    = stem.initialCenterIndex[0] + 1.9 * stem.initialWidth / stemSpacing[0];
+  int stemXEnd2    = stem.initialCenterIndex[0] + 1.5 * stem.initialWidth / stemSpacing[0];
 
 
   if(stemXStart1 < 0){
@@ -880,8 +926,8 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   ImageIO<UnsignedCharImageType>::WriteImage( movingMask, catStrings(prefix, "-stem-mask.tif") );
 #endif
 
-  sigma[0] = 2.5 * stemSpacing[0]; 
-  sigma[1] = 2.5 * stemSpacing[1]; 
+  sigma[0] = 3.0 * stemSpacing[0]; 
+  sigma[1] = 3.0 * stemSpacing[1]; 
   moving = ITKFilterFunctions<ImageType>::GaussSmooth(moving, sigma);
   
 #ifdef DEBUG
@@ -1114,7 +1160,7 @@ int main(int argc, char **argv ){
     
 
   std::cout << std::endl; 
-  std::cout << "Estimated optic nerve width: " << stem.width << std::endl;
+  std::cout << "Estimated optic nerve width: " << 2 * stem.width << std::endl;
   std::cout << std::endl; 
   if(noiArg.getValue() ){
 	 return EXIT_SUCCESS;
