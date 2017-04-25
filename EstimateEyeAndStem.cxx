@@ -656,21 +656,21 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix, bool alignE
   registration->SetInitialTransform( transform );
     
   RegistrationType::ShrinkFactorsArrayType shrinkFactorsPerLevel;
-  shrinkFactorsPerLevel.SetSize( 2 );
-  shrinkFactorsPerLevel[0] = 8;
-  shrinkFactorsPerLevel[1] = 4;
+  shrinkFactorsPerLevel.SetSize( 1 );
+  shrinkFactorsPerLevel[0] = 4;
+  //shrinkFactorsPerLevel[1] = 4;
   //shrinkFactorsPerLevel[2] = 2;
   //shrinkFactorsPerLevel[3] = 1;
 
   RegistrationType::SmoothingSigmasArrayType smoothingSigmasPerLevel;
-  smoothingSigmasPerLevel.SetSize( 2 );
-  smoothingSigmasPerLevel[0] = 2;
-  smoothingSigmasPerLevel[1] = 0;
+  smoothingSigmasPerLevel.SetSize( 1 );
+  smoothingSigmasPerLevel[0] = 0;
+  //smoothingSigmasPerLevel[1] = 0;
   //smoothingSigmasPerLevel[2] = 0.5;
   //smoothingSigmasPerLevel[3] = 0;
   //smoothingSigmasPerLevel[0] = 0;
 
-  registration->SetNumberOfLevels ( 2 );
+  registration->SetNumberOfLevels ( 1 );
   registration->SetSmoothingSigmasPerLevel( smoothingSigmasPerLevel );
   registration->SetShrinkFactorsPerLevel( shrinkFactorsPerLevel );
   
