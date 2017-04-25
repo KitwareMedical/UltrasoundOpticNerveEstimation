@@ -78,8 +78,32 @@
 //
 
 
-//If DEBUG is defined several intermedate images are stored
-#define DEBUG
+
+//If DEBUG_IMAGES is defined several intermedate images are stored
+//#define DEBUG_IMAGES
+
+//If DEBUG_PRINT is defined print out intermediate messages
+//#define DEBUG_PRINT
+
+//If REPORT_TIMES is deinf perform time measurments of individual steps 
+//and report them
+#define REPORT_TIMES
+#ifdef REPORT_TIMES
+#include "itkTimeProbe.h"
+itk::TimeProbe clockEyeA;
+itk::TimeProbe clockEyeB;
+itk::TimeProbe clockEyeC1;
+itk::TimeProbe clockEyeC2;
+itk::TimeProbe clockEyeC3;
+
+
+itk::TimeProbe clockStemA;
+itk::TimeProbe clockStemB;
+itk::TimeProbe clockStemC1;
+itk::TimeProbe clockStemC2;
+itk::TimeProbe clockStemC3;
+#endif
+
 
 
 #include "itkImage.h"
@@ -162,7 +186,6 @@ typedef itk::ImageMaskSpatialObject< 2 >   MaskType;
 typedef itk::EllipseSpatialObject< 2 >   EllipseType;
 typedef itk::SpatialObjectToImageFilter< EllipseType, ImageType >   SpatialObjectToImageFilterType;
 typedef EllipseType::TransformType EllipseTransformType;
-
 
 
 
@@ -285,15 +308,21 @@ ImageType::Pointer CreateEllipseImage( ImageType::SpacingType spacing,
 //
 //For a detailed descritpion and overview of the whole pipleine
 //see the top of this file
-Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
+Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix, bool alignEllipse){
 
+#ifdef DEBUG_PRINT
   std::cout << "--- Fitting Eye ---" << std::endl << std::endl;
+#endif
   
   Eye eye;
 
   ////
   //A. Prepare fixed image
   ///
+
+#ifdef REPORT_TIMESS
+  clockEyeA.Start();
+#endif
 
   //-- Steps 1 to 3
   //   1. Rescale the image to 0, 100
@@ -307,11 +336,12 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
   ImageType::SizeType imageSize = imageRegion.GetSize();
   ImageType::PointType imageOrigin = image->GetOrigin();
 
-
+#ifdef DEBUG_PRINT
   std::cout << "Origin, spacing, size input image" << std::endl;
   std::cout << imageOrigin << std::endl;
   std::cout << imageSpacing << std::endl;
   std::cout << imageSize << std::endl;
+#endif
 
   ITKFilterFunctions<ImageType>::SigmaArrayType sigma;
   sigma[0] = 10 * imageSpacing[0]; 
@@ -358,7 +388,7 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
   signedDistanceFilter->Update();
   ImageType::Pointer imageDistance = signedDistanceFilter->GetOutput();
 
-#ifdef DEBUG
+#ifdef DEBUG_IMAGES
   ImageIO<ImageType>::WriteImage(imageDistance, catStrings(prefix, "-eye-distance.tif") );
 #endif
 
@@ -371,9 +401,11 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
   eye.initialCenterIndex = imageCalculatorFilter->GetIndexOfMaximum();
   image->TransformIndexToPhysicalPoint(eye.initialCenterIndex, eye.initialCenter);
   
+
+#ifdef DEBUG_PRINT
   std::cout << "Eye inital center: " << eye.initialCenterIndex << std::endl;
   std::cout << "Eye initial radius: "<< eye.initialRadius << std::endl;
-
+#endif
   
 
 
@@ -412,7 +444,7 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
   signedDistanceY->Update();
   ImageType::Pointer imageDistanceY = signedDistanceY->GetOutput();
 
-#ifdef DEBUG
+#ifdef DEBUG_IMAGES
   ImageIO<ImageType>::WriteImage(imageDistanceY, catStrings(prefix, "-eye-ydistance.tif") );
 #endif
 
@@ -422,8 +454,9 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
   
   eye.initialRadiusY = imageCalculatorY->GetMaximum() ;
 
+#ifdef DEBUG_PRINT
   std::cout << "Eye initial radiusY: "<< eye.initialRadiusY << std::endl;
-  
+#endif
   
   //Compute horizontal distance to eye border
   ImageType::SizeType xRegionSize;
@@ -447,7 +480,7 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
   signedDistanceX->Update();
   ImageType::Pointer imageDistanceX = signedDistanceX->GetOutput();
 
-#ifdef DEBUG
+#ifdef DEBUG_IMAGES
   ImageIO<ImageType>::WriteImage(imageDistanceX, catStrings(prefix, "-eye-xdistance.tif") );
 #endif
 
@@ -457,8 +490,9 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
   
   eye.initialRadiusX = imageCalculatorX->GetMaximum() ;
 
+#ifdef DEBUG_PRINT
   std::cout << "Eye initial radiusX: "<< eye.initialRadiusX << std::endl;
-
+#endif
 
   //--Step 5
   //  Gaussian smoothing, threshold and rescale
@@ -469,16 +503,24 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
   imageSmooth = ITKFilterFunctions<ImageType>::ThresholdAbove( imageSmooth, 70, 70);
   imageSmooth = ITKFilterFunctions<ImageType>::Rescale( imageSmooth, 0, 100);
 
-#ifdef DEBUG
+#ifdef DEBUG_IMAGES
   ImageIO<ImageType>::WriteImage(imageSmooth, catStrings(prefix, "-eye-smooth.tif") );
 #endif
 
-
+#ifdef REPORT_TIMES
+  clockEyeA.Stop();
+#endif
   
+
+
+
   ////
   //B. Prepare fixed image 
   ////
 
+#ifdef REPORT_TIMES
+  clockEyeB.Start();
+#endif
 
   //-- Steps 1 through 2
   //   1. Create ellipse ring image by subtract two ellipse with different 
@@ -505,21 +547,26 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
   ellipse = ITKFilterFunctions<ImageType>::ThresholdAbove(ellipse, 70, 70);
   ellipse = ITKFilterFunctions<ImageType>::Rescale(ellipse, 0, 100);
 
-#ifdef DEBUG
+#ifdef DEBUG_IMAGES
   ImageIO<ImageType>::WriteImage( ellipse, catStrings(prefix, "-eye-moving.tif") );
 #endif 
 
+#ifdef DEBUG_PRINT
   std::cout << "Origin, spacing, size ellipse image" << std::endl;
   std::cout << ellipse->GetOrigin() << std::endl;
   std::cout << ellipse->GetSpacing() << std::endl;
   std::cout << ellipse->GetLargestPossibleRegion().GetSize() << std::endl;
+#endif
 
+  clockEyeB.Stop();
 
 
   ////
   //C. Affine registration
   ////
  
+  clockEyeC1.Start();
+
   //-- Step 1
   //   Create a mask image that only measure mismatch in an ellipse region
   //   macthing the create ellipse image, but not including left and right corners 
@@ -545,6 +592,10 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
     }
   } 
    
+  clockEyeC1.Stop();
+
+
+  clockEyeC2.Start();
 
   //-- Step 2
   //   Affine registration centered on the fixed ellipse image
@@ -563,7 +614,9 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
   optimizer->SetGradientConvergenceTolerance( 0.000001 );
   optimizer->SetLineSearchAccuracy( 0.5 );
   optimizer->SetDefaultStepLength( 0.00001 );
+#ifdef DEBUG_PRINT
   optimizer->TraceOn();
+#endif
   optimizer->SetMaximumNumberOfFunctionEvaluations( 20000 );
 
   
@@ -588,7 +641,7 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
   spatialObjectMask->SetImage( castFilter3->GetOutput() );
   metric->SetFixedImageMask( spatialObjectMask );
 	  
-#ifdef DEBUG
+#ifdef DEBUG_IMAGES
   ImageIO<ImageType>::WriteImage( ellipseMask, catStrings(prefix, "-eye-mask.tif")  );
 #endif
 
@@ -604,14 +657,17 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
     
   RegistrationType::ShrinkFactorsArrayType shrinkFactorsPerLevel;
   shrinkFactorsPerLevel.SetSize( 2 );
-  shrinkFactorsPerLevel[0] = 2;
-  shrinkFactorsPerLevel[1] = 1;
-  //shrinkFactorsPerLevel[0] = 1;
+  shrinkFactorsPerLevel[0] = 8;
+  shrinkFactorsPerLevel[1] = 4;
+  //shrinkFactorsPerLevel[2] = 2;
+  //shrinkFactorsPerLevel[3] = 1;
 
   RegistrationType::SmoothingSigmasArrayType smoothingSigmasPerLevel;
   smoothingSigmasPerLevel.SetSize( 2 );
-  smoothingSigmasPerLevel[0] = 0;
+  smoothingSigmasPerLevel[0] = 2;
   smoothingSigmasPerLevel[1] = 0;
+  //smoothingSigmasPerLevel[2] = 0.5;
+  //smoothingSigmasPerLevel[3] = 0;
   //smoothingSigmasPerLevel[0] = 0;
 
   registration->SetNumberOfLevels ( 2 );
@@ -624,12 +680,15 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
 	  registration->Update();
   }
   catch( itk::ExceptionObject & err ){
+#ifdef DEBUG_PRINT
 	  std::cerr << "ExceptionObject caught !" << std::endl;
 	  std::cerr << err << std::endl;
 	  //return EXIT_FAILURE;
+#endif
   }
 
 
+#ifdef DEBUG_PRINT
   const double bestValue = optimizer->GetValue();
   std::cout << "Result = " << std::endl;
   std::cout << " Metric value  = " << bestValue          << std::endl;
@@ -637,29 +696,42 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
   std::cout << "Optimized transform paramters:" << std::endl;
   std::cout <<  registration->GetTransform()->GetParameters()  << std::endl;
   std::cout <<  transform->GetCenter()  << std::endl;
+#endif
+
+#ifdef REPORT_TIMES
+  clockEyeC2.Stop();
+#endif
 
 
 
-  AffineTransformType::Pointer inverse = AffineTransformType::New();
-  transform->GetInverse( inverse );
 
-
+#ifdef REPORT_TIMES
+  clockEyeC3.Start();
+#endif
+ 
 
   //Created registered ellipse image 
-  ResampleFilterType::Pointer resampler = ResampleFilterType::New();
-  resampler->SetInput( ellipse );
-  resampler->SetTransform( inverse );
-  resampler->SetSize( imageSize );
-  resampler->SetOutputOrigin(  image->GetOrigin() );
-  resampler->SetOutputSpacing( imageSpacing );
-  resampler->SetOutputDirection( image->GetDirection() );
-  resampler->SetDefaultPixelValue( 0 );
-  resampler->Update();
-  ImageType::Pointer moved = resampler->GetOutput();
+  if(alignEllipse){
+    AffineTransformType::Pointer inverse = AffineTransformType::New();
+    transform->GetInverse( inverse );
 
-  eye.aligned = moved;
 
-#ifdef DEBUG
+
+    ResampleFilterType::Pointer resampler = ResampleFilterType::New();
+    resampler->SetInput( ellipse );
+    resampler->SetTransform( inverse );
+    resampler->SetSize( imageSize );
+    resampler->SetOutputOrigin(  image->GetOrigin() );
+    resampler->SetOutputSpacing( imageSpacing );
+    resampler->SetOutputDirection( image->GetDirection() );
+    resampler->SetDefaultPixelValue( 0 );
+    resampler->Update();
+    ImageType::Pointer moved = resampler->GetOutput();
+
+    eye.aligned = moved;
+  }
+
+#ifdef DEBUG_IMAGES
   ImageIO<ImageType>::WriteImage( moved, catStrings(prefix, "-eye-registred.tif")  );
 
 
@@ -716,14 +788,17 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
     std::swap(eye.minor, eye.major);
   }
 
+#ifdef DEBUG_PRINT
   std::cout << "Eye center: " << eye.centerIndex << std::endl;
   std::cout << "Eye minor: "  << eye.minor << std::endl;
   std::cout << "Eye major: "  << eye.major << std::endl;
 
-
-
-
   std::cout << "--- Done Fitting Eye ---" << std::endl << std::endl;
+#endif
+
+#ifdef REPORT_TIMES
+  clockEyeC3.Stop();
+#endif
 
   return eye;
 };
@@ -743,10 +818,13 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix){
 //For a detailed descritpion and overview of the whole pipleine
 //see the top of this file
 
-Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix){
+Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix, bool alignStem){
   
+#ifdef DEBUG_PRINT
   std::cout << "--- Fit stem ---" << std::endl << std::endl;
-  
+#endif
+
+
   Stem stem;
   
   
@@ -754,7 +832,10 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   //A) Prepare moving image
   ////
   
-  
+#ifdef REPORT_TIMES
+  clockStemA.Start();
+#endif
+
   //-- Step 1
   //   Extract optic nerve region below the eye using the eye location and 
   //   size estimates.
@@ -807,15 +888,16 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   ImageType::PointType stemOrigin = stemImageOrig->GetOrigin();
   ImageType::SpacingType stemSpacing = stemImageOrig->GetSpacing();
 
+#ifdef DEBUG_PRINT
   std::cout << "Origin, spacing, size and index of stem image" << std::endl;
   std::cout << stemOrigin << std::endl;
   std::cout << stemSpacing << std::endl;
   std::cout << stemSize << std::endl;
   std::cout << stemRegion.GetIndex() << std::endl;
+#endif
 
 
-
-#ifdef DEBUG
+#ifdef DEBUG_IMAGES
   ImageIO<ImageType>::WriteImage( stemImageOrig, catStrings(prefix, "-stem.tif") );
 #endif 
 
@@ -838,7 +920,7 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   stemImage = ITKFilterFunctions<ImageType>::Rescale(stemImage, 0, 100);
 
   
-#ifdef DEBUG
+#ifdef DEBUG_IMAGES
   ImageIO<ImageType>::WriteImage( stemImage, catStrings(prefix, "-stem-smooth.tif") );
 #endif 
 
@@ -854,7 +936,7 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   ImageType::Pointer stemImageB = 
 	  ITKFilterFunctions<ImageType>::BinaryThreshold(stemImage, -1, 75, 0, 100);
 
-#ifdef DEBUG
+#ifdef DEBUG_IMAGES
   ImageIO<ImageType>::WriteImage( stemImageB, catStrings(prefix, "-stem-sd-thres.tif") );
 #endif
 
@@ -868,7 +950,7 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   openingFilter->Update();
   stemImageB = openingFilter->GetOutput();
  
-#ifdef DEBUG
+#ifdef DEBUG_IMAGES
   ImageIO<ImageType>::WriteImage( stemImageB, catStrings(prefix, "-stem-morpho.tif") );
 #endif
 
@@ -887,7 +969,7 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   stemDistanceFilter->Update();
   ImageType::Pointer stemDistance = stemDistanceFilter->GetOutput();
 
-#ifdef DEBUG
+#ifdef DEBUG_IMAGES
   ImageIO<ImageType>::WriteImage( stemDistance, catStrings(prefix, "-stem-distance.tif") );
 #endif
  
@@ -900,16 +982,19 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   stem.initialCenterIndex = stemCalculatorFilter->GetIndexOfMaximum();
   stemImage->TransformIndexToPhysicalPoint(stem.initialCenterIndex, stem.initialCenter);
 
+#ifdef DEBUG_PRINT
   std::cout << "Approximate width of stem: " <<  2 * stem.initialWidth << std::endl;
   std::cout << "Approximate stem center: " << stem.initialCenter << std::endl;
   std::cout << "Approximate stem center Index: " << stem.initialCenterIndex << std::endl;
-  
+#endif
 
   //-- Step 4 
   //   Rescale rows left and right of the approximate center to 0 - 100
 
   float centerIntensity = stemImage->GetPixel( stem.initialCenterIndex );
+#ifdef DEBUG_PRINT
   std::cout << "Approximate stem center intensity: " << centerIntensity << std::endl;
+#endif
   for(int i=0; i<stemSize[1]; i++){
     ImageType::IndexType index;
     index[1] = i;
@@ -950,7 +1035,7 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
 
   }
 
-#ifdef DEBUG
+#ifdef DEBUG_IMAGES
   ImageIO<ImageType>::WriteImage( stemImage, catStrings(prefix, "-stem-scaled.tif") );
 #endif
 
@@ -960,9 +1045,12 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   //   Binary threshold
 
   float tb = 65;
-  std::cout << "Stem threshold: " << tb << std::endl;
   stemImage =   ITKFilterFunctions<ImageType>::BinaryThreshold(stemImage, -1, tb, 0, 100);
   
+#ifdef DEBUG_PRINT
+  std::cout << "Stem threshold: " << tb << std::endl;
+#endif
+
 /*  
   StructuringElementType structuringElement2;
   structuringElement2.SetRadius( 10 );
@@ -1001,7 +1089,7 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
 
 
   
-#ifdef DEBUG
+#ifdef DEBUG_IMAGES
   ImageIO<ImageType>::WriteImage( stemDistance, catStrings(prefix, "-stem-scaled-distance.tif") );
 #endif
  
@@ -1014,10 +1102,11 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   stem.initialCenterIndex = stemCalculatorFilter2->GetIndexOfMaximum();
   stemImage->TransformIndexToPhysicalPoint(stem.initialCenterIndex, stem.initialCenter);
 
+#ifdef DEBUG_PRINT
   std::cout << "Refined approximate width of stem: " <<  2 * stem.initialWidth << std::endl;
   std::cout << "Refined approximate stem center: " << stem.initialCenter << std::endl;
   std::cout << "Refined approximate stem center Index: " << stem.initialCenterIndex << std::endl;
-
+#endif
 
 
 
@@ -1033,10 +1122,13 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   stemImage = ITKFilterFunctions<ImageType>::GaussSmooth(stemImage, sigma);
   
 
-#ifdef DEBUG
+#ifdef DEBUG_IMAGES
   ImageIO<ImageType>::WriteImage( stemImage, catStrings(prefix, "-stem-thres.tif") );
 #endif
 
+#ifdef REPORT_TIMES
+  clockStemA.Stop();
+#endif
 
 
   /////
@@ -1044,6 +1136,10 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   //  Create artifical stem image to fit to region of interest.
   /////
   
+#ifdef REPORT_TIMES
+  clockStemB.Start();
+#endif
+
   //--Step 1 and C) 1
   //  Create a black and white image with two bars that
   //  are an intial estimate of the width apart. 
@@ -1100,7 +1196,7 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
      }    
   }
 
-#ifdef DEBUG
+#ifdef DEBUG_IMAGES
   ImageIO<UnsignedCharImageType>::WriteImage( movingMask, catStrings(prefix, "-stem-mask.tif") );
 #endif
 
@@ -1113,21 +1209,27 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   sigma[1] = 3.0 * stemSpacing[1]; 
   moving = ITKFilterFunctions<ImageType>::GaussSmooth(moving, sigma);
   
-#ifdef DEBUG
+#ifdef DEBUG_IMAGES
   ImageIO<ImageType>::WriteImage( moving, catStrings( prefix, "-stem-moving.tif" ) );
 #endif
 
-
-
+#ifdef REPORT_TIMES
+  clockStemB.Stop();
+#endif
 
   ////
   //C. Registration of artifical stem image to threhsold stem image
   ////
   
+#ifdef REPORT_TIMES
+  clockStemC1.Start();
+#endif
+
   //-- Step 2 (Step 1 was inclued in B)
   //   Similarity transfrom registration centered on the fixed bars image
 
 
+  
   SimilarityTransformType::Pointer transform = SimilarityTransformType::New();
   transform->SetCenter( stem.initialCenter );
 
@@ -1141,7 +1243,9 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   optimizer->SetGradientConvergenceTolerance( 0.000001 );
   optimizer->SetLineSearchAccuracy( 0.5 );
   optimizer->SetDefaultStepLength( 0.00001 );
+#ifdef DEBUG_PRINT
   optimizer->TraceOn();
+#endif
   optimizer->SetMaximumNumberOfFunctionEvaluations( 20000 );
 
   
@@ -1169,21 +1273,23 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   registration->SetMovingImage(    stemImage    );
   registration->SetFixedImage(   moving  );
 
-
+#ifdef DEBUG_PRINT
   std::cout << "Transform parameters: " << std::endl;
   std::cout <<  transform->GetParameters()  << std::endl;
   std::cout <<  transform->GetCenter()  << std::endl;
+#endif
+
   registration->SetInitialTransform( transform );
     
   RegistrationType::ShrinkFactorsArrayType shrinkFactorsPerLevel;
   shrinkFactorsPerLevel.SetSize( 1 );
-  //shrinkFactorsPerLevel[0] = 1;
+  //shrinkFactorsPerLevel[0] = 2;
   //shrinkFactorsPerLevel[1] = 1;
   shrinkFactorsPerLevel[0] = 1;
 
   RegistrationType::SmoothingSigmasArrayType smoothingSigmasPerLevel;
   smoothingSigmasPerLevel.SetSize( 1 );
-  //smoothingSigmasPerLevel[0] = stem.initialWidth / 2.0 * imageSpacing[0];
+  //smoothingSigmasPerLevel[0] = 0.5;
   //smoothingSigmasPerLevel[1] = 0;
   smoothingSigmasPerLevel[0] = 0;
 
@@ -1197,12 +1303,15 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
 	  registration->Update();
   }
   catch( itk::ExceptionObject & err ){
+#ifdef DEBUG_PRINT
 	  std::cerr << "ExceptionObject caught !" << std::endl;
 	  std::cerr << err << std::endl;
+#endif
 	  //return EXIT_FAILURE;
   }
 
-  
+ 
+#ifdef DEBUG_PRINT 
   const double bestValue = optimizer->GetValue();
   std::cout << "Result = " << std::endl;
   std::cout << " Metric value  = " << bestValue          << std::endl;
@@ -1210,29 +1319,38 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
   std::cout << "Registered transform parameters: " << std::endl;
   std::cout <<  registration->GetTransform()->GetParameters()  << std::endl;
   std::cout <<  transform->GetCenter()  << std::endl;
+#endif
+
+#ifdef REPORT_TIMES
+  clockStemC1.Stop();
+#endif
+
+#ifdef REPORT_TIMES
+  clockStemC2.Start();
+#endif
+
+  if(alignStem){
+    SimilarityTransformType::Pointer inverse = SimilarityTransformType::New();
+    transform->GetInverse( inverse );
 
 
-  SimilarityTransformType::Pointer inverse = SimilarityTransformType::New();
-  transform->GetInverse( inverse );
+    // Create registered bars image
+    ResampleFilterType::Pointer resampler = ResampleFilterType::New();
+    resampler->SetInput( moving );
+    resampler->SetTransform( inverse );
+    resampler->SetSize( stemSize );
+    resampler->SetOutputOrigin(  stemOrigin );
+    resampler->SetOutputSpacing( stemSpacing );
+    resampler->SetOutputDirection( stemImage->GetDirection() );
+    resampler->SetDefaultPixelValue( 0 );
+    resampler->Update();
+    ImageType::Pointer moved = resampler->GetOutput();
+
+    stem.aligned = moved;
+  }
 
 
-  // Create registered bars image
-  ResampleFilterType::Pointer resampler = ResampleFilterType::New();
-  resampler->SetInput( moving );
-  resampler->SetTransform( inverse );
-  resampler->SetSize( stemSize );
-  resampler->SetOutputOrigin(  stemOrigin );
-  resampler->SetOutputSpacing( stemSpacing );
-  resampler->SetOutputDirection( stemImage->GetDirection() );
-  resampler->SetDefaultPixelValue( 0 );
-  resampler->Update();
-  ImageType::Pointer moved = resampler->GetOutput();
-
-  stem.aligned = moved;
-
-
-
-#ifdef DEBUG
+#ifdef DEBUG_IMAGES
   ImageIO<ImageType>::WriteImage(moved, catStrings(prefix, "-stem-registered.tif") );
 
   moved = ITKFilterFunctions<ImageType>::ThresholdAbove(moved, 5, 255);
@@ -1280,12 +1398,16 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix)
 
   stem.width =  sqrt(tXO[0]*tXO[0] + tXO[1]*tXO[1]); 
 
-
+#ifdef DEBUG_PRINT
   std::cout << "Stem center: " << stem.centerIndex << std::endl;
   std::cout << "Stem width: "  << stem.width*2 << std::endl;
 
-
   std::cout << "--- Done fitting stem ---" << std::endl << std::endl;
+#endif
+
+#ifdef REPORT_TIMES
+  clockStemC2.Stop();
+#endif
 
   return stem;
 };
@@ -1335,17 +1457,35 @@ int main(int argc, char **argv ){
   /////
   //2. Fit eye
   ////
-  Eye eye = fitEye( origImage, prefix );
+  Eye eye = fitEye( origImage, prefix, !noiArg.getValue() );
 
   ////
   //3. Fit stem using eye size and location estimates
   ////
-  Stem stem = fitStem( origImage, eye, prefix );
+  Stem stem = fitStem( origImage, eye, prefix, !noiArg.getValue() );
     
 
   std::cout << std::endl; 
   std::cout << "Estimated optic nerve width: " << 2 * stem.width << std::endl;
   std::cout << std::endl; 
+
+
+#ifdef REPORT_TIMES
+  std::cout << "Times" << std::endl;
+  std::cout << "Eye A:   " << clockEyeA.GetMean() << std::endl;
+  std::cout << "Eye B:   " << clockEyeB.GetMean() << std::endl;
+  std::cout << "Eye C1:  " << clockEyeC1.GetMean() << std::endl;
+  std::cout << "Eye C2:  " << clockEyeC2.GetMean() << std::endl;
+  std::cout << "Eye C3:  " << clockEyeC3.GetMean() << std::endl;
+  std::cout << std::endl;
+  std::cout << "Stem A:  " << clockStemA.GetMean() << std::endl;
+  std::cout << "Stem B:  " << clockStemB.GetMean() << std::endl;
+  std::cout << "Stem C1: " << clockStemC1.GetMean() << std::endl;
+  std::cout << "Stem C2: " << clockStemC2.GetMean() << std::endl;
+#endif
+
+
+  //Return early if no image is required
   if(noiArg.getValue() ){
 	 return EXIT_SUCCESS;
   }
@@ -1369,7 +1509,7 @@ int main(int argc, char **argv ){
   CastFilter::Pointer movingCast = CastFilter::New();
   movingCast->SetInput( moved );
 
-#ifdef DEBUG
+#ifdef DEBUG_IMAGES
   ImageIO<ImageType>::WriteImage( moved, catStrings(prefix, "-joint-moved.tif") );
 #endif
   
