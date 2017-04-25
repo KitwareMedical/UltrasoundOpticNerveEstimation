@@ -1,3 +1,25 @@
+/*=========================================================================
+Copyright 2010 Kitware Inc. 28 Corporate Drive,
+Clifton Park, NY, 12065, USA.
+
+All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+=========================================================================*/
+
+
+
 //This application estimates the width of the optic nerve from
 //a B-mode ultrasound image. 
 //
@@ -9,6 +31,8 @@
 // 2. Estimation of the optic nerve width
 //Both steps include several substeps which results in many parameters 
 //that can be tuned if needed.
+//
+//
 //
 //EYE ESTIMATION:
 //---------------
@@ -35,13 +59,15 @@
 //  2. Gaussian smoothing, threshold, rescale
 //
 // C) Affine registration
-//  1. Create a mask image that only measure mismatch in an ellipse region
+//  1. Create a mask image that only measures mismatch in an ellipse region
 //     macthing the create ellipse image, but not including left and right corners 
 //     of the eye (they are often black but sometimes white)
 //  2. Affine registration centered on the fixed ellipse image
 //  3. Compute minor and major axis by pushing the radii from the created ellipse
 //     image through the computed transform
 // 
+//
+//
 //OPTIC NERVE ESTIMATION:
 //-----------------------
 //(sub-steps indicate that a new image was created and the pipeline will use 
@@ -79,13 +105,14 @@
 
 
 
+
 //If DEBUG_IMAGES is defined several intermedate images are stored
 //#define DEBUG_IMAGES
 
 //If DEBUG_PRINT is defined print out intermediate messages
 //#define DEBUG_PRINT
 
-//If REPORT_TIMES is deinf perform time measurments of individual steps 
+//If REPORT_TIMES is defined perform time measurments of individual steps 
 //and report them
 #define REPORT_TIMES
 #ifdef REPORT_TIMES
