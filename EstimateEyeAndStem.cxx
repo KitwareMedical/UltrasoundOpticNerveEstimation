@@ -107,7 +107,7 @@ limitations under the License.
 
 
 //If DEBUG_IMAGES is defined several intermedate images are stored
-//#define DEBUG_IMAGES
+#define DEBUG_IMAGES
 
 //If DEBUG_PRINT is defined print out intermediate messages
 //#define DEBUG_PRINT
@@ -756,33 +756,35 @@ Eye fitEye(ImageType::Pointer inputImage, const std::string &prefix, bool alignE
     ImageType::Pointer moved = resampler->GetOutput();
 
     eye.aligned = moved;
+  
+#ifdef DEBUG_IMAGES
+   ImageIO<ImageType>::WriteImage( moved, catStrings(prefix, "-eye-registred.tif")  );
+
+
+   ImageType::Pointer ellipseThres = ITKFilterFunctions<ImageType>::ThresholdAbove(moved, 5, 255);
+   CastFilter::Pointer teCast = CastFilter::New();
+   teCast->SetInput( ellipseThres );
+
+   BinaryImageToLabelMapFilterType::Pointer binaryImageToLabelMapFilter = BinaryImageToLabelMapFilterType::New();
+   binaryImageToLabelMapFilter->SetInput( teCast->GetOutput() );
+   binaryImageToLabelMapFilter->Update();
+ 
+   LabelMapToLabelImageFilterType::Pointer labelMapToLabelImageFilter = LabelMapToLabelImageFilterType::New();
+   labelMapToLabelImageFilter->SetInput(binaryImageToLabelMapFilter->GetOutput());
+   labelMapToLabelImageFilter->Update();
+ 
+   ImageType::Pointer imageRescale = ITKFilterFunctions<ImageType>::Rescale(inputImage, 0, 255);
+   LabelOverlayImageFilterType::Pointer labelOverlayImageFilter = LabelOverlayImageFilterType::New();
+   labelOverlayImageFilter->SetInput( imageRescale );
+   labelOverlayImageFilter->SetLabelImage(labelMapToLabelImageFilter->GetOutput());
+   labelOverlayImageFilter->SetOpacity(.5);
+   labelOverlayImageFilter->Update();
+  
+   ImageIO<RGBImageType>::WriteImage( labelOverlayImageFilter->GetOutput(), catStrings(prefix, "-eye-overlay.png") );
+#endif
   }
 
-#ifdef DEBUG_IMAGES
-  ImageIO<ImageType>::WriteImage( moved, catStrings(prefix, "-eye-registred.tif")  );
 
-
-  ImageType::Pointer ellipseThres = ITKFilterFunctions<ImageType>::ThresholdAbove(moved, 5, 255);
-  CastFilter::Pointer teCast = CastFilter::New();
-  teCast->SetInput( ellipseThres );
-
-  BinaryImageToLabelMapFilterType::Pointer binaryImageToLabelMapFilter = BinaryImageToLabelMapFilterType::New();
-  binaryImageToLabelMapFilter->SetInput( teCast->GetOutput() );
-  binaryImageToLabelMapFilter->Update();
- 
-  LabelMapToLabelImageFilterType::Pointer labelMapToLabelImageFilter = LabelMapToLabelImageFilterType::New();
-  labelMapToLabelImageFilter->SetInput(binaryImageToLabelMapFilter->GetOutput());
-  labelMapToLabelImageFilter->Update();
- 
-  ImageType::Pointer imageRescale = ITKFilterFunctions<ImageType>::Rescale(inputImage, 0, 255);
-  LabelOverlayImageFilterType::Pointer labelOverlayImageFilter = LabelOverlayImageFilterType::New();
-  labelOverlayImageFilter->SetInput( imageRescale );
-  labelOverlayImageFilter->SetLabelImage(labelMapToLabelImageFilter->GetOutput());
-  labelOverlayImageFilter->SetOpacity(.5);
-  labelOverlayImageFilter->Update();
-  
-  ImageIO<RGBImageType>::WriteImage( labelOverlayImageFilter->GetOutput(), catStrings(prefix, "-eye-overlay.png") );
-#endif
 
 
   
@@ -1117,7 +1119,7 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix,
 
   
 #ifdef DEBUG_IMAGES
-  ImageIO<ImageType>::WriteImage( stemDistance, catStrings(prefix, "-stem-scaled-distance.tif") );
+  ImageIO<ImageType>::WriteImage( stemDistance2, catStrings(prefix, "-stem-scaled-distance.tif") );
 #endif
  
   //Compute max of distance transfrom 
@@ -1374,36 +1376,39 @@ Stem fitStem(ImageType::Pointer inputImage, Eye &eye, const std::string &prefix,
     ImageType::Pointer moved = resampler->GetOutput();
 
     stem.aligned = moved;
-  }
 
 
 #ifdef DEBUG_IMAGES
-  ImageIO<ImageType>::WriteImage(moved, catStrings(prefix, "-stem-registered.tif") );
+    ImageIO<ImageType>::WriteImage(moved, catStrings(prefix, "-stem-registered.tif") );
 
-  moved = ITKFilterFunctions<ImageType>::ThresholdAbove(moved, 5, 255);
+    moved = ITKFilterFunctions<ImageType>::ThresholdAbove(moved, 5, 255);
 
-  CastFilter::Pointer movingCast = CastFilter::New();
-  movingCast->SetInput( moved );
+    CastFilter::Pointer movingCast = CastFilter::New();
+    movingCast->SetInput( moved );
 
-  BinaryImageToLabelMapFilterType::Pointer binaryImageToLabelMapFilter = BinaryImageToLabelMapFilterType::New();
-  binaryImageToLabelMapFilter->SetInput( movingCast->GetOutput() );
-  binaryImageToLabelMapFilter->Update();
- 
-  LabelMapToLabelImageFilterType::Pointer labelMapToLabelImageFilter = LabelMapToLabelImageFilterType::New();
-  labelMapToLabelImageFilter->SetInput(binaryImageToLabelMapFilter->GetOutput());
-  labelMapToLabelImageFilter->Update();
- 
-  ImageType::Pointer stemOrigRescaled = ITKFilterFunctions<ImageType>::Rescale( stemImageOrig, 0, 255);
-  LabelOverlayImageFilterType::Pointer labelOverlayImageFilter = LabelOverlayImageFilterType::New();
-  labelOverlayImageFilter->SetInput( stemOrigRescaled );
-  labelOverlayImageFilter->SetLabelImage(labelMapToLabelImageFilter->GetOutput());
-  labelOverlayImageFilter->SetOpacity(.25);
-  labelOverlayImageFilter->Update();
+    BinaryImageToLabelMapFilterType::Pointer binaryImageToLabelMapFilter = BinaryImageToLabelMapFilterType::New();
+    binaryImageToLabelMapFilter->SetInput( movingCast->GetOutput() );
+    binaryImageToLabelMapFilter->Update();
+
+    LabelMapToLabelImageFilterType::Pointer labelMapToLabelImageFilter = LabelMapToLabelImageFilterType::New();
+    labelMapToLabelImageFilter->SetInput(binaryImageToLabelMapFilter->GetOutput());
+    labelMapToLabelImageFilter->Update();
+
+    ImageType::Pointer stemOrigRescaled = ITKFilterFunctions<ImageType>::Rescale( stemImageOrig, 0, 255);
+    LabelOverlayImageFilterType::Pointer labelOverlayImageFilter = LabelOverlayImageFilterType::New();
+    labelOverlayImageFilter->SetInput( stemOrigRescaled );
+    labelOverlayImageFilter->SetLabelImage(labelMapToLabelImageFilter->GetOutput());
+    labelOverlayImageFilter->SetOpacity(.25);
+    labelOverlayImageFilter->Update();
 
 
 
-  ImageIO<RGBImageType>::WriteImage( labelOverlayImageFilter->GetOutput(), catStrings(prefix, "-stem-overlay.png") );
+    ImageIO<RGBImageType>::WriteImage( labelOverlayImageFilter->GetOutput(), catStrings(prefix, "-stem-overlay.png") );
 #endif
+  }
+
+
+
 
 
 
