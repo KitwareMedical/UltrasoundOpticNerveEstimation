@@ -1,4 +1,5 @@
 
+#include <tclap/CmdLine.h>
 #include "OpticNerveEstimator.hxx"
 
 int main(int argc, char **argv ){
