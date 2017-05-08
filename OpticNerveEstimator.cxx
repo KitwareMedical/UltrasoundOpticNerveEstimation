@@ -20,13 +20,14 @@ limitations under the License.
 #include "OpticNerveEstimator.hxx"
 
 
-void OpticNerveEstimator::Fit(OpticNerveEstimator::ImageType::Pointer origImage,
-                              bool overlay,
-                              bool intermediateOverlays,
-                              std::string prefix){
+bool
+OpticNerveEstimator::Fit( OpticNerveEstimator::ImageType::Pointer origImage,
+                          bool overlay,
+                          bool intermediateOverlays,
+                          std::string prefix){
 
-  FitEye( origImage, prefix, intermediateOverlays );
-  FitStem( origImage, eye, prefix, intermediateOverlays );
+  bool fitEyeSucces = FitEye( origImage, prefix, intermediateOverlays );
+  bool fitStemSucces = FitStem( origImage, eye, prefix, intermediateOverlays );
 
 
   std::cout << std::endl;
@@ -51,7 +52,7 @@ void OpticNerveEstimator::Fit(OpticNerveEstimator::ImageType::Pointer origImage,
 
   //Return early if no image is required
   if( !overlay ){
-	 return;
+     return fitStemSucces && fitEyeSucces;
   }
 
 
@@ -100,6 +101,7 @@ void OpticNerveEstimator::Fit(OpticNerveEstimator::ImageType::Pointer origImage,
   ImageIO<RGBImageType>::WriteImage( overlay, catStrings(prefix, "-overlay.png") );
 #endif
 
+   return fitStemSucces && fitEyeSucces;
 }
 
 //Helper function
@@ -186,7 +188,7 @@ OpticNerveEstimator::CreateEllipseImage( ImageType::SpacingType spacing,
 //
 //For a detailed descritpion and overview of the whole pipleine
 //see the top of this file
-void
+bool
 OpticNerveEstimator::FitEye( OpticNerveEstimator::ImageType::Pointer inputImage,
                              const std::string &prefix, bool alignEllipse){
 
@@ -679,6 +681,8 @@ OpticNerveEstimator::FitEye( OpticNerveEstimator::ImageType::Pointer inputImage,
   clockEyeC3.Stop();
 #endif
 
+
+  return true;
 };
 
 
@@ -696,7 +700,7 @@ OpticNerveEstimator::FitEye( OpticNerveEstimator::ImageType::Pointer inputImage,
 //For a detailed descritpion and overview of the whole pipleine
 //see the top of this file
 
-void
+bool
 OpticNerveEstimator::OpticNerveEstimator::FitStem(
                 OpticNerveEstimator::ImageType::Pointer inputImage,
                 OpticNerveEstimator::Eye &eye,
@@ -735,8 +739,8 @@ OpticNerveEstimator::OpticNerveEstimator::FitStem(
   desiredSize[1] = 1.2 * eye.minor;
 
   if(desiredStart[1] > imageSize[1] ){
-    std::cout << "Could not locate stem area" << std::endl;
-    return;
+    //std::cout << "Could not locate stem area" << std::endl;
+    return false;
   }
   if(desiredStart[1] + desiredSize[1] > imageSize[1] ){
     desiredSize[1] = imageSize[1] - desiredStart[1];
@@ -1054,8 +1058,8 @@ OpticNerveEstimator::OpticNerveEstimator::FitStem(
     stemXEnd2 = stemSize[0];
   }
   if(stemXEnd2 < stemXStart2){
-    std::cout << "Failed to locate stem" << std::endl;
-    return;
+    //std::cout << "Failed to locate stem" << std::endl;
+    return false;
   }
 
   for(int i=stemYStart; i<stemSize[1]; i++){
@@ -1289,5 +1293,6 @@ OpticNerveEstimator::OpticNerveEstimator::FitStem(
   clockStemC2.Stop();
 #endif
 
+   return true;
 };
 

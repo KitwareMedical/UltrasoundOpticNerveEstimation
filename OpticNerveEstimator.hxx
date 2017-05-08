@@ -242,7 +242,7 @@ public:
 
 
 
-  void Fit( ImageType::Pointer origImage, bool overlay = false,
+  bool Fit( ImageType::Pointer origImage, bool overlay = false,
             bool intermediateOverlays = false, std::string prefix = "");
 
 
@@ -301,7 +301,7 @@ private:
   //
   //For a detailed descritpion and overview of the whole pipleine
   //see the top of this file
-  void FitEye( ImageType::Pointer inputImage, const std::string &prefix,
+  bool FitEye( ImageType::Pointer inputImage, const std::string &prefix,
                bool alignEllipse);
 
 
@@ -315,7 +315,7 @@ private:
   //
   //For a detailed descritpion and overview of the whole pipleine
   //see the top of this file
-  void FitStem( ImageType::Pointer inputImage, Eye &eye,
+  bool FitStem( ImageType::Pointer inputImage, Eye &eye,
                 const std::string &prefix, bool alignStem);
 
 
