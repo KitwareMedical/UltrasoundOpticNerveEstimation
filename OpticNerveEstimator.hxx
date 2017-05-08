@@ -146,7 +146,6 @@ limitations under the License.
 #include "itkEllipseSpatialObject.h"
 #include "itkSpatialObjectToImageFilter.h"
 
-#include <tclap/CmdLine.h>
 #include <algorithm>
 
 #include "ImageIO.h"
