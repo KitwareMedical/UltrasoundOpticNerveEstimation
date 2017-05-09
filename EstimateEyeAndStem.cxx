@@ -31,12 +31,13 @@ int main(int argc, char **argv ){
   ////
   //1. Read and preprocess the ultrasound image
   ////
-  OpticNerveEstimator::ImageType::Pointer origImage = ImageIO<OpticNerveEstimator::ImageType>::ReadImage( imageArg.getValue() );
+  typedef itk::Image<float, 2>  ImageType;
+ ImageType::Pointer origImage = ImageIO<ImageType>::ReadImage( imageArg.getValue() );
 
-  OpticNerveEstimator one;
+  OpticNerveEstimator<ImageType> one;
   one.Fit( origImage, !noiArg.getValue(), !noiArg.getValue(), prefix);
 
-  OpticNerveEstimator::Stem stem = one.GetStem();
+  OpticNerveEstimator<ImageType>::Stem stem = one.GetStem();
 
   std::cout << std::endl;
   std::cout << "Estimated optic nerve width: " << 2 * stem.width << std::endl;

@@ -1,3 +1,6 @@
+#ifndef OPTICNERVEESTIMATOR_H
+#define OPTICNERVEESTIMATOR_H
+
 /*=========================================================================
 Copyright 2010 Kitware Inc. 28 Corporate Drive,
 Clifton Park, NY, 12065, USA.
@@ -114,7 +117,7 @@ limitations under the License.
 
 //If REPORT_TIMES is defined perform time measurments of individual steps
 //and report them
-#define REPORT_TIMES
+//#define REPORT_TIMES
 #ifdef REPORT_TIMES
 #include "itkTimeProbe.h"
 #endif
@@ -152,18 +155,26 @@ limitations under the License.
 #include "ITKFilterFunctions.h"
 #include "itkImageRegionIterator.h"
 
+
+template <typename TImageType>
 class OpticNerveEstimator{
 
 public:
 
-  typedef  float  PixelType;
-  typedef itk::Image< PixelType, 2 >  ImageType;
+  typedef TImageType  ImageType;
+  typedef typename ImageType::PixelType PixelType;
+  typedef typename ImageType::SpacingType SpacingType;
+  typedef typename ImageType::IndexType IndexType;
+  typedef typename ImageType::SizeType SizeType;
+  typedef typename ImageType::PointType PointType;
+  typedef typename ImageType::RegionType RegionType;
+  typedef typename ImageType::Pointer ImagePointer;
   typedef itk::Image<unsigned char, 2>  UnsignedCharImageType;
 
   typedef itk::CastImageFilter< ImageType, UnsignedCharImageType > CastFilter;
   typedef itk::ApproximateSignedDistanceMapImageFilter< UnsignedCharImageType, ImageType  > SignedDistanceFilter;
 
-  typedef itk::BinaryBallStructuringElement<ImageType::PixelType, ImageType::ImageDimension> StructuringElementType;
+  typedef itk::BinaryBallStructuringElement<PixelType, 2> StructuringElementType;
   typedef itk::BinaryMorphologicalClosingImageFilter<ImageType, ImageType, StructuringElementType> ClosingFilter;
   typedef itk::BinaryMorphologicalOpeningImageFilter<ImageType, ImageType, StructuringElementType> OpeningFilter;
   typedef itk::GrayscaleMorphologicalOpeningImageFilter<ImageType, ImageType, StructuringElementType> GrayOpeningFilter;
@@ -207,10 +218,10 @@ public:
 
   //Storage for eye and stem location and sizes
   struct Eye{
-    ImageType::IndexType initialCenterIndex;
-    ImageType::PointType initialCenter;
-    ImageType::IndexType centerIndex;
-    ImageType::PointType center;
+    IndexType initialCenterIndex;
+    PointType initialCenter;
+    IndexType centerIndex;
+    PointType center;
     double initialRadius = -1;
     double minor = -1;
     double major = -1;
@@ -218,21 +229,21 @@ public:
     double initialRadiusX = -1;
     double initialRadiusY = -1;
 
-    ImageType::Pointer aligned;
+    ImagePointer aligned;
   };
 
 
 
   struct Stem{
-    ImageType::IndexType initialCenterIndex;
-    ImageType::PointType initialCenter;
-    ImageType::IndexType centerIndex;
-    ImageType::PointType center;
+    IndexType initialCenterIndex;
+    PointType initialCenter;
+    IndexType centerIndex;
+    PointType center;
     double initialWidth = -1;
     double width = -1;
 
-    ImageType::Pointer aligned;
-    ImageType::RegionType originalImageRegion;
+    ImagePointer aligned;
+    RegionType originalImageRegion;
   };
 
 
@@ -242,7 +253,7 @@ public:
 
 
 
-  bool Fit( ImageType::Pointer origImage, bool overlay = false,
+  bool Fit( ImagePointer origImage, bool overlay = false,
             bool intermediateOverlays = false, std::string prefix = "");
 
 
@@ -255,7 +266,7 @@ public:
    };
 
    RGBImageType::Pointer GetOverlay(){
-      return overlay;
+      return overlayImage;
    };
 
 
@@ -277,21 +288,21 @@ private:
 
   Eye eye;
   Stem stem;
-  RGBImageType::Pointer overlay;
+  RGBImageType::Pointer overlayImage;
 
   //Helper function
   std::string catStrings(std::string s1, std::string s2);
 
 
   //Create ellipse image
-  ImageType::Pointer CreateEllipseImage( ImageType::SpacingType spacing,
-		                         ImageType::SizeType size,
-				         ImageType::PointType origin,
-				         ImageType::PointType center,
-				         double r1, double r2,
-                                         double outside = 100,
-                                         double inside = 0
-                                       );
+  ImagePointer CreateEllipseImage( SpacingType spacing,
+		                   SizeType size,
+				   PointType origin,
+				   PointType center,
+				   double r1, double r2,
+                                   double outside = 100,
+                                   double inside = 0
+                                  );
 
 
   //Fit an ellipse to an eye ultrasound image in three main steps
@@ -301,7 +312,7 @@ private:
   //
   //For a detailed descritpion and overview of the whole pipleine
   //see the top of this file
-  bool FitEye( ImageType::Pointer inputImage, const std::string &prefix,
+  bool FitEye( ImagePointer inputImage, const std::string &prefix,
                bool alignEllipse);
 
 
@@ -315,10 +326,12 @@ private:
   //
   //For a detailed descritpion and overview of the whole pipleine
   //see the top of this file
-  bool FitStem( ImageType::Pointer inputImage, Eye &eye,
+  bool FitStem( ImagePointer inputImage, Eye &eye,
                 const std::string &prefix, bool alignStem);
 
 
 
 
 };
+#include "OpticNerveEstimator.cxx"
+#endif

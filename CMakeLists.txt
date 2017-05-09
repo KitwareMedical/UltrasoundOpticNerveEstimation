@@ -15,6 +15,6 @@ INCLUDE(${ITK_USE_FILE})
 #ADD_EXECUTABLE(FitStem FitStem.cxx)
 #TARGET_LINK_LIBRARIES (FitStem ${ITK_LIBRARIES} )
 
-ADD_EXECUTABLE(EstimateEyeAndStem EstimateEyeAndStem.cxx OpticNerveEstimator.cxx)
+ADD_EXECUTABLE(EstimateEyeAndStem EstimateEyeAndStem.cxx )
 TARGET_LINK_LIBRARIES (EstimateEyeAndStem ${ITK_LIBRARIES} )
 
