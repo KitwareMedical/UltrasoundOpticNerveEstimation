@@ -114,7 +114,7 @@ limitations under the License.
 
 //If REPORT_TIMES is defined perform time measurments of individual steps
 //and report them
-#define REPORT_TIMES
+//#define REPORT_TIMES
 #ifdef REPORT_TIMES
 #include "itkTimeProbe.h"
 #endif
@@ -255,7 +255,7 @@ public:
    };
 
    RGBImageType::Pointer GetOverlay(){
-      return overlay;
+      return overlayImage;
    };
 
 
@@ -277,7 +277,7 @@ private:
 
   Eye eye;
   Stem stem;
-  RGBImageType::Pointer overlay;
+  RGBImageType::Pointer overlayImage;
 
   //Helper function
   std::string catStrings(std::string s1, std::string s2);
