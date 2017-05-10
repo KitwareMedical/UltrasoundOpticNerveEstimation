@@ -23,14 +23,13 @@ limitations under the License.
 bool
 OpticNerveEstimator::Fit( OpticNerveEstimator::ImageType::Pointer origImage,
                           bool overlay,
-                          bool intermediateOverlays,
                           std::string prefix){
 
-  bool fitEyeSucces = FitEye( origImage, prefix, intermediateOverlays );
+  bool fitEyeSucces = FitEye( origImage, prefix, overlay);
   if(!fitEyeSucces){
     return false;
   }
-  bool fitStemSucces = FitStem( origImage, eye, prefix, intermediateOverlays );
+  bool fitStemSucces = FitStem( origImage, eye, prefix, overlay);
   if(!fitStemSucces){
     return false;
   }

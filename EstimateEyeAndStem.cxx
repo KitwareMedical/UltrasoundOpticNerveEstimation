@@ -34,7 +34,7 @@ int main(int argc, char **argv ){
   OpticNerveEstimator::ImageType::Pointer origImage = ImageIO<OpticNerveEstimator::ImageType>::ReadImage( imageArg.getValue() );
 
   OpticNerveEstimator one;
-  one.Fit( origImage, !noiArg.getValue(), !noiArg.getValue(), prefix);
+  one.Fit( origImage, !noiArg.getValue(), prefix);
 
   OpticNerveEstimator::Stem stem = one.GetStem();
 
