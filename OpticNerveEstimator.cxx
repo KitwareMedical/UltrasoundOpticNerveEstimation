@@ -27,7 +27,13 @@ OpticNerveEstimator::Fit( OpticNerveEstimator::ImageType::Pointer origImage,
                           std::string prefix){
 
   bool fitEyeSucces = FitEye( origImage, prefix, intermediateOverlays );
+  if(!fitEyeSucces){
+    return false;
+  }
   bool fitStemSucces = FitStem( origImage, eye, prefix, intermediateOverlays );
+  if(!fitStemSucces){
+    return false;
+  }
 
 
   std::cout << std::endl;
@@ -287,6 +293,9 @@ OpticNerveEstimator::FitEye( OpticNerveEstimator::ImageType::Pointer inputImage,
   std::cout << "Eye inital center: " << eye.initialCenterIndex << std::endl;
   std::cout << "Eye initial radius: "<< eye.initialRadius << std::endl;
 #endif
+  if(eye.initialRadius < 0 ){
+     return false;
+  }
 
 
 
