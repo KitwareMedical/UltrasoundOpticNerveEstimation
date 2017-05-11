@@ -107,10 +107,10 @@ limitations under the License.
 
 
 //If DEBUG_IMAGES is defined several intermedate images are stored
-//#define DEBUG_IMAGES
+#define DEBUG_IMAGES
 
 //If DEBUG_PRINT is defined print out intermediate messages
-//#define DEBUG_PRINT
+#define DEBUG_PRINT
 
 //If REPORT_TIMES is defined perform time measurments of individual steps
 //and report them
@@ -205,6 +205,46 @@ public:
   typedef EllipseType::TransformType EllipseTransformType;
 
 
+  struct Parameters{
+     //Eye fitting paramaters 
+     double eyeInitialBlurFactor = 10;
+     double eyeHorizontalBorderFactor = 1/15.0;
+     double eyeInitialBinaryThreshold = 25;
+     double eyeInitialLowerThreshold = 25;
+     double eyeClosingRadiusFactor =  1/7.0;
+     double eyeVerticalBorderFactor = 1/12.0;
+     int    eyeYSlab = 20;
+     int    eyeXSlab = 20;
+     int    eyeThreshold = 70;
+     double eyeRingFactor = 1.3;
+     double eyeMaskCornerXFactor = 0.85;
+     double eyeMaskCornerYFactor = 0.6;
+     double eyeRegistrationSize = 100;
+
+     //Stem fitting paramaters
+     double stemXRegionFactor = 1;
+     double stemYRegionFactor = 0.85;
+     double stemYSizeFactor =  1.2;
+     double stemInitialSmoothXFactor = 4;
+     double stemInitialSmoothYFactor = 20;
+     int    stemInitialThreshold = 75;
+     double stemOpeningRadiusFactor = 1/50.0;
+     double stemVerticalBorderFactor = 1/7.0;
+     int    stemHorizontalBoder = 2;
+     int    stemRegistrationThreshold = 65;
+     double stemRefineVerticalBorderFactor = 1/20.0;
+     double stemRegsitrationSmooth = 3;
+  };
+
+  //Allow paramters to be set directly
+  Parameters algParams;
+
+  enum Status{
+    ESTIMATION_SUCCESS,
+    ESTIMATION_FAIL_EYE,
+    ESTIMATION_FAIL_NERVE
+  };
+
   //Storage for eye and stem location and sizes
   struct Eye{
     ImageType::IndexType initialCenterIndex;
@@ -242,7 +282,7 @@ public:
 
 
 
-  bool Fit( ImageType::Pointer origImage, bool overlay = false,
+  Status Fit( ImageType::Pointer origImage, bool overlay = false,
             std::string prefix = "");
 
 
