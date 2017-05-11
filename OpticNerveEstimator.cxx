@@ -170,7 +170,7 @@ OpticNerveEstimator::CreateEllipseImage( ImageType::SpacingType spacing,
   resampler->SetSize( size );
   resampler->SetOutputOrigin(  origin );
   resampler->SetOutputSpacing( spacing );
-  //resampler->SetOutputDirection( stemImage->GetDirection() );
+  resampler->SetOutputDirection( direction );
   resampler->SetDefaultPixelValue( 0 );
   resampler->Update();
 
