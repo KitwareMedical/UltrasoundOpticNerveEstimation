@@ -206,7 +206,7 @@ public:
 
 
   struct Parameters{
-     //Eye fitting paramaters 
+     //Eye fitting paramaters
      double eyeInitialBlurFactor = 10;
      double eyeHorizontalBorderFactor = 1/15.0;
      double eyeInitialBinaryThreshold = 25;
@@ -242,7 +242,8 @@ public:
   enum Status{
     ESTIMATION_SUCCESS,
     ESTIMATION_FAIL_EYE,
-    ESTIMATION_FAIL_NERVE
+    ESTIMATION_FAIL_NERVE,
+    ESTIMATION_UNKNOWN
   };
 
   //Storage for eye and stem location and sizes
@@ -327,6 +328,7 @@ private:
   ImageType::Pointer CreateEllipseImage( ImageType::SpacingType spacing,
 		                         ImageType::SizeType size,
 				         ImageType::PointType origin,
+                                         ImageType::DirectionType direction,
 				         ImageType::PointType center,
 				         double r1, double r2,
                                          double outside = 100,
