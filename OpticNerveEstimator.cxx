@@ -200,6 +200,9 @@ OpticNerveEstimator::FitEye( OpticNerveEstimator::ImageType::Pointer inputImage,
   std::cout << "--- Fitting Eye ---" << std::endl << std::endl;
 #endif
 
+#ifdef DEBUG_IMAGES
+  ImageIO<ImageType>::WriteImage(inputImage, catStrings(prefix, "-eye-input.tif") );
+#endif
 
   ////
   //A. Prepare fixed image
@@ -695,9 +698,10 @@ OpticNerveEstimator::FitEye( OpticNerveEstimator::ImageType::Pointer inputImage,
   eye.minor =  sqrt(tXO[0]*tXO[0] + tXO[1]*tXO[1]);
   eye.major =  sqrt(tYO[0]*tYO[0] + tYO[1]*tYO[1]);
 
-  if(eye.major < eye.minor){
-    std::swap(eye.minor, eye.major);
-  }
+  //TODO limit transform
+  //if(eye.major < eye.minor){
+  //  std::swap(eye.minor, eye.major);
+  //}
 
 #ifdef DEBUG_PRINT
   std::cout << "Eye center: " << eye.centerIndex << std::endl;
