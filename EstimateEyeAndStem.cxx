@@ -5,7 +5,7 @@
 int main(int argc, char **argv ){
 
   //Command line parsing
-  TCLAP::CmdLine cmd("Fit stem to eye ultrasound", ' ', "1");
+  TCLAP::CmdLine cmd("Fit nerve to eye ultrasound", ' ', "1");
 
   TCLAP::ValueArg<std::string> imageArg("i","image","Ultrasound input image", true, "",
       "filename");
@@ -36,10 +36,10 @@ int main(int argc, char **argv ){
   OpticNerveEstimator one;
   one.Fit( origImage, !noiArg.getValue(), prefix);
 
-  OpticNerveEstimator::Stem stem = one.GetStem();
+  OpticNerveEstimator::Nerve nerve = one.GetNerve();
 
   std::cout << std::endl;
-  std::cout << "Estimated optic nerve width: " << 2 * stem.width << std::endl;
+  std::cout << "Estimated optic nerve width: " << 2 * nerve.width << std::endl;
   std::cout << std::endl;
 
 
