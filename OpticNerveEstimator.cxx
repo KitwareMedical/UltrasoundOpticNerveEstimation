@@ -183,7 +183,7 @@ OpticNerveEstimator::CreateEllipseImage( ImageType::SpacingType spacing,
   imageFilter->SetSize( smallSize );
   imageFilter->SetOrigin( origin );
   imageFilter->SetSpacing( smallSpacing );
-  imageFilter->SetDirection( direction );
+  //imageFilter->SetDirection( direction );
 
   EllipseType::Pointer ellipse   = EllipseType::New();
   EllipseType::ArrayType radiusArray;
@@ -800,13 +800,14 @@ OpticNerveEstimator::OpticNerveEstimator::FitNerve(
   ImageType::PointType nerveOrigin = nerveImageOrig->GetOrigin();
   ImageType::SpacingType nerveSpacing = nerveImageOrig->GetSpacing();
   ImageType::DirectionType nerveDirection = nerveImageOrig->GetDirection();
+  ImageType::IndexType nerveIndex = nerveRegion.GetIndex();
 
 #ifdef DEBUG_PRINT
   std::cout << "Origin, spacing, size and index of nerve image" << std::endl;
   std::cout << nerveOrigin << std::endl;
   std::cout << nerveSpacing << std::endl;
   std::cout << nerveSize << std::endl;
-  std::cout << nerveRegion.GetIndex() << std::endl;
+  std::cout << nerveIndex << std::endl;
 #endif
 
 
@@ -1299,6 +1300,27 @@ OpticNerveEstimator::OpticNerveEstimator::FitNerve(
   SimilarityTransformType::OutputVectorType tXO = transform->TransformVector(tX, tCenter);
 
   nerve.width =  sqrt(tXO[0]*tXO[0] + tXO[1]*tXO[1]);
+
+  //Check validity of estimates
+
+  //limit rotation to 45 degress
+  double rotation = transform->GetRotation();
+  if( std::fabs( rotation ) > M_PI / 4.0 ){
+    return false;
+  }
+
+  //Check if nerve width falls our of bounds
+  SimilarityTransformType::OutputVectorType tW = tXO;
+  tW[0] *= imageSpacing[0]; 
+  tW[1] *= imageSpacing[1]; 
+  if( nerve.centerIndex[0] - tW[0] < nerveIndex[0] || 
+      nerve.centerIndex[0] + tW[0]> nerveIndex[0] + nerveSize[0] ){
+    return ESTIMATION_FAIL_NERVE;
+  }
+  if( nerve.centerIndex[1] - tW[1] < nerveIndex[1] || 
+      nerve.centerIndex[1] + tW[1] > nerveIndex[1] + nerveSize[1] ){
+    return ESTIMATION_FAIL_NERVE;
+  }
 
 #ifdef DEBUG_PRINT
   std::cout << "Nerve center: " << nerve.centerIndex << std::endl;
