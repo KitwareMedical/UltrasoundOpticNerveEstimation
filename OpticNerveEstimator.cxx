@@ -82,68 +82,6 @@ OpticNerveEstimator::Fit( OpticNerveEstimator::ImageType::Pointer origImage,
 #endif
 
 
-  //Return early if no image is required
-  if( !overlay ){
-     return ESTIMATION_SUCCESS;
-  }
-
-
-  ////
-  //4. Create overlay image
-  ////
-  ImageType::Pointer image = ITKFilterFunctions<ImageType>::Rescale(origImage, 0, 100);
-  typedef itk::CastImageFilter< ImageType, RGBImageType> RGBCastFilter;
-  RGBCastFilter::Pointer rgbConvert = RGBCastFilter::New();
-  rgbConvert->SetInput( image );
-  rgbConvert->Update();
-  overlayImage = rgbConvert->GetOutput(); 
-
-
-  itk::ImageRegionIterator<RGBImageType> overlayIterator2( overlayImage, 
-                                             overlayImage->GetLargestPossibleRegion());
-  itk::ImageRegionIterator<ImageType> eyeIterator( eye.aligned, 
-                                             eye.aligned->GetLargestPossibleRegion() );
-
-  double alpha = 0.15;
-  while( !overlayIterator2.IsAtEnd() ){
-    RGBImageType::PixelType pixel = overlayIterator2.Get();
-    double p = eyeIterator.Get();
-    if(p > 25){
-      pixel[0] = (1-alpha) * pixel[0];
-      pixel[1] = (1-alpha) * pixel[1];
-      pixel[2] = alpha * 255 + (1-alpha) * pixel[2];
-    }
-    overlayIterator2.Set( pixel ); 
-
-    ++eyeIterator; 
-    ++overlayIterator2;
-  }
-
-  itk::ImageRegionIterator<RGBImageType> overlayIterator( overlayImage, 
-                                          nerve.originalImageRegion);
-  itk::ImageRegionIterator<ImageType> nerveIterator( nerve.aligned, 
-                                          nerve.aligned->GetLargestPossibleRegion() );
-  alpha = 0.3;
-  while( !overlayIterator.IsAtEnd() ){
-    RGBImageType::PixelType pixel = overlayIterator.Get();
-    double p = nerveIterator.Get(); 
-    if(p > 5){
-      pixel[0] = alpha * 255 + (1-alpha) * pixel[0];
-      pixel[1] = (1-alpha) * pixel[1];
-      pixel[2] = (1-alpha) * pixel[2];
-    }
-    overlayIterator.Set( pixel ); 
-    
-    ++nerveIterator; 
-    ++overlayIterator;
-  }
-
- 
-
-#ifdef DEBUG_IMAGES
-  ImageIO<RGBImageType>::WriteImage( overlayImage, catStrings(prefix, "-overlay.png") );
-#endif
-
    return ESTIMATION_SUCCESS;
 }
 

@@ -34,13 +34,21 @@ int main(int argc, char **argv ){
   OpticNerveEstimator::ImageType::Pointer origImage = ImageIO<OpticNerveEstimator::ImageType>::ReadImage( imageArg.getValue() );
 
   OpticNerveEstimator one;
-  one.Fit( origImage, !noiArg.getValue(), prefix);
+  OpticNerveEstimator::Status status = one.Fit( origImage, !noiArg.getValue(), prefix);
 
-  OpticNerveEstimator::Nerve nerve = one.GetNerve();
+  if(status == OpticNerveEstimator::ESTIMATION_SUCCESS){
+    if(!noiArg.getValue() ){
+      OpticNerveEstimator::RGBImageType::Pointer overlayImage = one.GetOverlay(origImage);
+#ifdef DEBUG_IMAGES
+  ImageIO<OpticNerveEstimator::RGBImageType>::WriteImage( overlayImage, one.catStrings(prefix, "-overlay.png") );
+#endif
+    }
+    OpticNerveEstimator::Nerve nerve = one.GetNerve();
 
-  std::cout << std::endl;
-  std::cout << "Estimated optic nerve width: " << 2 * nerve.width << std::endl;
-  std::cout << std::endl;
+    std::cout << std::endl;
+    std::cout << "Estimated optic nerve width: " << 2 * nerve.width << std::endl;
+    std::cout << std::endl;
+  }
 
 
   return EXIT_SUCCESS;
