@@ -407,7 +407,7 @@ OpticNerveEstimator::FitEye( OpticNerveEstimator::ImageType::Pointer inputImage,
 
   double outside = 100;
   //intial guess of radiusY axis
-  double r1 = std::min( 1.6 * eye.initialRadiusY, eye.initialRadiusX );
+  double r1 =  eye.initialRadiusX ;
   //inital guess of radiusX axis
   double r2 = eye.initialRadiusY;
   //width of the ellipse ring rf*r1, rf*r2
@@ -1026,7 +1026,7 @@ OpticNerveEstimator::OpticNerveEstimator::FitNerve(
   movingMask->SetSpacing(nerveSpacing);
   movingMask->SetOrigin(nerveOrigin);
 
-  int nerveYStart   = nerveSize[1] * (1 - algParams.nerveYRegionFactor);
+  int nerveYStart   = nerveSize[0] * algParams.nerveYOffsetFactor;
   int nerveXStart1  = nerve.initialCenterIndex[0] - 1.5 * nerve.initialWidth / nerveSpacing[0];
   int nerveXEnd1    = nerve.initialCenterIndex[0] - 1 * nerve.initialWidth / nerveSpacing[0];
   int nerveXStart2  = nerve.initialCenterIndex[0] + 1 * nerve.initialWidth / nerveSpacing[0];

@@ -217,19 +217,20 @@ public:
      int    eyeYSlab = 20;
      int    eyeXSlab = 20;
      int    eyeThreshold = 70;
-     double eyeRingFactor = 1.3;
+     double eyeRingFactor = 1.4;
      double eyeMaskCornerXFactor = 0.85;
      double eyeMaskCornerYFactor = 0.6;
      double eyeRegistrationSize = 100;
 
      //Nerve fitting paramaters
-     double nerveXRegionFactor = 1;
-     double nerveYRegionFactor = 0.85;
+     double nerveXRegionFactor = 1.0;
+     double nerveYRegionFactor = 0.8;
      double nerveYSizeFactor =  1.2;
-     double nerveInitialSmoothXFactor = 3;
+     double nerveYOffsetFactor =  0.2;
+     double nerveInitialSmoothXFactor = 4;
      double nerveInitialSmoothYFactor = 20;
      int    nerveInitialThreshold = 75;
-     double nerveOpeningRadiusFactor = 1/70.0;
+     double nerveOpeningRadiusFactor = 1/60.0;
      double nerveVerticalBorderFactor = 1/5.0;
      int    nerveHorizontalBoder = 2;
      int    nerveRegistrationThreshold = 65;
