@@ -5,7 +5,7 @@
 int main(int argc, char **argv ){
 
   //Command line parsing
-  TCLAP::CmdLine cmd("Fit stem to eye ultrasound", ' ', "1");
+  TCLAP::CmdLine cmd("Fit nerve to eye ultrasound", ' ', "1");
 
   TCLAP::ValueArg<std::string> imageArg("i","image","Ultrasound input image", true, "",
       "filename");
@@ -34,13 +34,21 @@ int main(int argc, char **argv ){
   OpticNerveEstimator::ImageType::Pointer origImage = ImageIO<OpticNerveEstimator::ImageType>::ReadImage( imageArg.getValue() );
 
   OpticNerveEstimator one;
-  one.Fit( origImage, !noiArg.getValue(), prefix);
+  OpticNerveEstimator::Status status = one.Fit( origImage, !noiArg.getValue(), prefix);
 
-  OpticNerveEstimator::Stem stem = one.GetStem();
+  if(status == OpticNerveEstimator::ESTIMATION_SUCCESS){
+    if(!noiArg.getValue() ){
+      OpticNerveEstimator::RGBImageType::Pointer overlayImage = one.GetOverlay(origImage);
+#ifdef DEBUG_IMAGES
+  ImageIO<OpticNerveEstimator::RGBImageType>::WriteImage( overlayImage, one.catStrings(prefix, "-overlay.png") );
+#endif
+    }
+    OpticNerveEstimator::Nerve nerve = one.GetNerve();
 
-  std::cout << std::endl;
-  std::cout << "Estimated optic nerve width: " << 2 * stem.width << std::endl;
-  std::cout << std::endl;
+    std::cout << std::endl;
+    std::cout << "Estimated optic nerve width: " << 2 * nerve.width << std::endl;
+    std::cout << std::endl;
+  }
 
 
   return EXIT_SUCCESS;
