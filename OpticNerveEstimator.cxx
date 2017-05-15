@@ -252,7 +252,7 @@ OpticNerveEstimator::FitEye( OpticNerveEstimator::ImageType::Pointer inputImage,
 
 
   ITKFilterFunctions<UnsignedCharImageType>::AddVerticalBorder( sdImage,
-           algParams.eyeVerticalBorderFactor * imageSize[1] );
+           algParams.eyeVerticalBorderFactor * imageSize[0] );
 
   SignedDistanceFilter::Pointer signedDistanceFilter = SignedDistanceFilter::New();
   signedDistanceFilter->SetInput( sdImage );
@@ -407,7 +407,7 @@ OpticNerveEstimator::FitEye( OpticNerveEstimator::ImageType::Pointer inputImage,
 
   double outside = 100;
   //intial guess of radiusY axis
-  double r1 =  eye.initialRadiusX ;
+  double r1 =  std::min( 1.4 * eye.initialRadiusY, eye.initialRadiusX) ;
   //inital guess of radiusX axis
   double r2 = eye.initialRadiusY;
   //width of the ellipse ring rf*r1, rf*r2
@@ -504,24 +504,15 @@ OpticNerveEstimator::FitEye( OpticNerveEstimator::ImageType::Pointer inputImage,
   RegistrationType::Pointer   registration  = RegistrationType::New();
 
 
-  //optimizer->SetGradientConvergenceTolerance( 0.000001 );
-  //optimizer->SetLineSearchAccuracy( 0.5 );
-  //optimizer->SetDefaultStepLength( 0.00001 );
+  optimizer->SetGradientConvergenceTolerance( 0.000001 );
+  optimizer->SetLineSearchAccuracy( 0.5 );
+  optimizer->SetDefaultStepLength( 0.00001 );
 #ifdef DEBUG_PRINT
-  //optimizer->TraceOn();
+  optimizer->TraceOn();
 #endif
-  //optimizer->SetMaximumNumberOfFunctionEvaluations( 20000 );
+  optimizer->SetMaximumNumberOfFunctionEvaluations( 20000 );
 
-/*
-  OptimizerType::ScalesType scales( transform->GetNumberOfParameters() );
-  scales[0] = 1.0;
-  scales[1] = 1.0;
-  scales[2] = 1.0;
-  scales[3] = 1.0;
-  scales[4] = 1.0;
-  scales[5] = 1.0;
-  optimizer->SetScales( scales );
-*/
+
 
   metric->SetMovingInterpolator( movingInterpolator );
   metric->SetFixedInterpolator( fixedInterpolator );
@@ -544,8 +535,6 @@ OpticNerveEstimator::FitEye( OpticNerveEstimator::ImageType::Pointer inputImage,
   registration->SetMovingImage(    imageSmooth    );
   registration->SetFixedImage(   ellipse   );
 
-  std::cout <<  transform->GetParameters()  << std::endl;
-  std::cout <<  transform->GetCenter()  << std::endl;
   registration->SetInitialTransform( transform );
 
   RegistrationType::ShrinkFactorsArrayType shrinkFactorsPerLevel;
@@ -793,7 +782,7 @@ OpticNerveEstimator::OpticNerveEstimator::FitNerve(
 #ifdef DEBUG_IMAGES
   ImageIO<ImageType>::WriteImage( nerveImageB, catStrings(prefix, "-nerve-sd-thres.tif") );
 #endif
-/*
+
   StructuringElementType structuringElement;
   structuringElement.SetRadius( std::min(imageSize[0], imageSize[1]) * algParams.nerveOpeningRadiusFactor  );
   structuringElement.CreateStructuringElement();
@@ -803,7 +792,6 @@ OpticNerveEstimator::OpticNerveEstimator::FitNerve(
   openingFilter->SetForegroundValue(100.0);
   openingFilter->Update();
   nerveImageB = openingFilter->GetOutput();
-*/
 
 #ifdef DEBUG_IMAGES
   ImageIO<ImageType>::WriteImage( nerveImageB, catStrings(prefix, "-nerve-morpho.tif") );
@@ -1106,24 +1094,15 @@ OpticNerveEstimator::OpticNerveEstimator::FitNerve(
   InterpolatorType::Pointer   fixedInterpolator  = InterpolatorType::New();
   RegistrationType::Pointer   registration  = RegistrationType::New();
 
-  //optimizer->SetGradientConvergenceTolerance( 0.000001 );
-  //optimizer->SetLineSearchAccuracy( 0.5 );
-  //optimizer->SetDefaultStepLength( 0.00001 );
+  optimizer->SetGradientConvergenceTolerance( 0.000001 );
+  optimizer->SetLineSearchAccuracy( 0.5 );
+  optimizer->SetDefaultStepLength( 0.00001 );
 #ifdef DEBUG_PRINT
-  //optimizer->TraceOn();
+  optimizer->TraceOn();
 #endif
-  //optimizer->SetMaximumNumberOfFunctionEvaluations( 20000 );
+  optimizer->SetMaximumNumberOfFunctionEvaluations( 20000 );
 
 
-  //Using a Quasi-Newton method, make sure scales are set to identity to
-  //not destory the approximation of the Hessian
-  std::cout << transform->GetNumberOfParameters() << std::endl;
-  OptimizerType::ScalesType scales( transform->GetNumberOfParameters() );
-  scales[0] = 1.0;
-  scales[1] = 1.0;
-  scales[2] = 1.0;
-  scales[3] = 1.0;
-  optimizer->SetScales( scales );
 
 
   metric->SetMovingInterpolator( movingInterpolator );
