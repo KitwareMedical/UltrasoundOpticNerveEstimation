@@ -755,7 +755,7 @@ OpticNerveEstimator::FitEye( OpticNerveEstimator::ImageType::Pointer inputImage,
 //see the top of this file
 
 bool
-OpticNerveEstimator::OpticNerveEstimator::FitNerve(
+OpticNerveEstimator::FitNerve(
                 OpticNerveEstimator::ImageType::Pointer inputImage,
                 OpticNerveEstimator::ImageType::RegionType &desiredRegion,
                 const std::string &prefix,
