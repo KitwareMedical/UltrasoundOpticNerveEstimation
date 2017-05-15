@@ -25,7 +25,7 @@ OpticNerveEstimator::Fit( OpticNerveEstimator::ImageType::Pointer origImage,
                           bool overlay,
                           std::string prefix){
 
-  bool fitEyeSucces = FitEye( origImage, prefix, overlay);
+  bool fitEyeSucces = FitEye( origImage, overlay, prefix);
   if(!fitEyeSucces){
     return ESTIMATION_FAIL_EYE;
   }
@@ -59,7 +59,7 @@ OpticNerveEstimator::Fit( OpticNerveEstimator::ImageType::Pointer origImage,
 
   ImageType::RegionType desiredRegion(desiredStart, desiredSize);
 
-  bool fitNerveSucces = FitNerve( origImage, desiredRegion, prefix, overlay);
+  bool fitNerveSucces = FitNerve( origImage, desiredRegion, overlay, prefix);
   if(!fitNerveSucces){
     return ESTIMATION_FAIL_NERVE;
   }
@@ -173,7 +173,7 @@ OpticNerveEstimator::CreateEllipseImage( ImageType::SpacingType spacing,
 //see the top of this file
 bool
 OpticNerveEstimator::FitEye( OpticNerveEstimator::ImageType::Pointer inputImage,
-                             const std::string &prefix, bool alignEllipse){
+                bool alignEllipse, const std::string &prefix){
 
 #ifdef DEBUG_PRINT
   std::cout << "--- Fitting Eye ---" << std::endl << std::endl;
@@ -696,8 +696,9 @@ bool
 OpticNerveEstimator::OpticNerveEstimator::FitNerve(
                 OpticNerveEstimator::ImageType::Pointer inputImage,
                 OpticNerveEstimator::ImageType::RegionType &desiredRegion,
-                const std::string &prefix,
-                bool alignNerve ){
+                bool alignNerve,
+                const std::string &prefix
+                ){
 
 #ifdef DEBUG_PRINT
   std::cout << "--- Fit nerve ---" << std::endl << std::endl;
@@ -1025,7 +1026,7 @@ OpticNerveEstimator::OpticNerveEstimator::FitNerve(
   movingMask->SetSpacing(nerveSpacing);
   movingMask->SetOrigin(nerveOrigin);
 
-  int nerveYStart   = eye.initialRadiusY * (1 - algParams.nerveYRegionFactor);
+  int nerveYStart   = nerveSize[1] * (1 - algParams.nerveYRegionFactor);
   int nerveXStart1  = nerve.initialCenterIndex[0] - 1.5 * nerve.initialWidth / nerveSpacing[0];
   int nerveXEnd1    = nerve.initialCenterIndex[0] - 1 * nerve.initialWidth / nerveSpacing[0];
   int nerveXStart2  = nerve.initialCenterIndex[0] + 1 * nerve.initialWidth / nerveSpacing[0];
@@ -1249,13 +1250,13 @@ OpticNerveEstimator::OpticNerveEstimator::FitNerve(
 
   //Check if nerve width falls our of bounds
   SimilarityTransformType::OutputVectorType tW = tXO;
-  tW[0] *= imageSpacing[0]; 
-  tW[1] *= imageSpacing[1]; 
-  if( nerve.centerIndex[0] - tW[0] < nerveIndex[0] || 
+  tW[0] *= imageSpacing[0];
+  tW[1] *= imageSpacing[1];
+  if( nerve.centerIndex[0] - tW[0] < nerveIndex[0] ||
       nerve.centerIndex[0] + tW[0]> nerveIndex[0] + nerveSize[0] ){
     return ESTIMATION_FAIL_NERVE;
   }
-  if( nerve.centerIndex[1] - tW[1] < nerveIndex[1] || 
+  if( nerve.centerIndex[1] - tW[1] < nerveIndex[1] ||
       nerve.centerIndex[1] + tW[1] > nerveIndex[1] + nerveSize[1] ){
     return ESTIMATION_FAIL_NERVE;
   }
