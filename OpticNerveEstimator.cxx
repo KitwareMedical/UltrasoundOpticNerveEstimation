@@ -456,26 +456,31 @@ OpticNerveEstimator::FitEye( OpticNerveEstimator::ImageType::Pointer inputImage,
   //   macthing the create ellipse image, but not including left and right corners
   //   of the eye (they are often black but sometimes white)
 
-  ImageType::Pointer ellipseMask = CreateEllipseImage( imageSpacing, imageSize, imageOrigin, imageDirection,
+  ImageType::Pointer ellipseMask = CreateEllipseImage( imageSpacing, imageSize,
+                                                       imageOrigin, imageDirection,
 		                                       eye.initialCenter,
                                                        r1 * ( algParams.eyeRingFactor + 1 ) / 2,
                                                        r2 * ( algParams.eyeRingFactor + 1 ) / 2,
                                                        0, 100 );
   //remove left and right corners from mask
-  for(int i=0; i<eye.initialCenterIndex[0] - algParams.eyeMaskCornerXFactor * r1; i++){
+  int xlim_l = std::max(0, (int) (eye.initialCenterIndex[0] - algParams.eyeMaskCornerXFactor * r1) );
+  int xlim_r = std::min( (int) imageSize[0], (int)( eye.initialCenterIndex[0] + algParams.eyeMaskCornerXFactor * r1 ) );
+
+  int ylim_t = std::max(0, (int) (eye.initialCenterIndex[1] - algParams.eyeMaskCornerYFactor * r2) );
+  int ylim_b = std::min( (int) imageSize[1], (int)( eye.initialCenterIndex[1] + algParams.eyeMaskCornerYFactor * r2) );
+
+  for(int i=0; i<xlim_l; i++){
     ImageType::IndexType index;
     index[0] = i;
-    for(int j = eye.initialCenterIndex[1] - algParams.eyeMaskCornerYFactor * r2;
-            j < eye.initialCenterIndex[1] + algParams.eyeMaskCornerYFactor * r2; j++){
+    for(int j = ylim_b; j < ylim_t; j++){
       index[1]=j;
       ellipseMask->SetPixel(index, 0);
     }
   }
-  for(int i=eye.initialCenterIndex[0] + algParams.eyeMaskCornerXFactor * r1; i < imageSize[0]; i++){
+  for(int i=xlim_r; i < imageSize[0]; i++){
     ImageType::IndexType index;
     index[0] = i;
-    for(int j = eye.initialCenterIndex[1] - algParams.eyeMaskCornerYFactor * r2;
-            j < eye.initialCenterIndex[1] + algParams.eyeMaskCornerYFactor * r2; j++){
+    for(int j = ylim_b; j < ylim_t; j++){
       index[1]=j;
       ellipseMask->SetPixel(index, 0);
     }
