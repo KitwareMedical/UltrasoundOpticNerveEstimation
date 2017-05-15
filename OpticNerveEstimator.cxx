@@ -35,12 +35,12 @@ OpticNerveEstimator::Fit( OpticNerveEstimator::ImageType::Pointer origImage,
   ImageType::SizeType imageSize = imageRegion.GetSize();
 
   ImageType::IndexType desiredStart;
-  desiredStart[0] = eye.center[0] - algParams.nerveXRegionFactor * eye.radiusY;
-  desiredStart[1] = eye.center[1] + algParams.nerveYRegionFactor * eye.radiusX ;
+  desiredStart[0] = eye.center[0] - algParams.nerveXRegionFactor * eye.radiusX;
+  desiredStart[1] = eye.center[1] + algParams.nerveYRegionFactor * eye.radiusY ;
 
   ImageType::SizeType desiredSize;
-  desiredSize[0] = 2 * algParams.nerveXRegionFactor * eye.radiusY;
-  desiredSize[1] =     algParams.nerveYSizeFactor * eye.radiusX;
+  desiredSize[0] = 2 * algParams.nerveXRegionFactor * eye.radiusX;
+  desiredSize[1] =     algParams.nerveYSizeFactor * eye.radiusY;
 
   if(desiredStart[1] > imageSize[1] ){
     return ESTIMATION_FAIL_NERVE;
