@@ -407,7 +407,7 @@ OpticNerveEstimator::FitEye( OpticNerveEstimator::ImageType::Pointer inputImage,
 
   double outside = 100;
   //intial guess of radiusY axis
-  double r1 = eye.initialRadiusX;
+  double r1 = std::min( 1.4 * eye.initialRadiusY, eye.initialRadiusX );
   //inital guess of radiusX axis
   double r2 = eye.initialRadiusY;
   //width of the ellipse ring rf*r1, rf*r2
@@ -1244,22 +1244,37 @@ OpticNerveEstimator::OpticNerveEstimator::FitNerve(
 
   //limit rotation to 45 degress
   double rotation = transform->GetRotation();
-  if( std::fabs( rotation ) > M_PI / 4.0 ){
+  if( std::fabs( rotation ) > M_PI / 3.0  && std::fabs( rotation ) < M_PI * 2.0 / 3.0){
+#ifdef DEBUG_PRINT
+  std::cout << "Estimation failed: Nerve rotated too much " << rotation << std::endl;
+#endif
     return false;
   }
 
   //Check if nerve width falls our of bounds
   SimilarityTransformType::OutputVectorType tW = tXO;
-  tW[0] *= imageSpacing[0];
-  tW[1] *= imageSpacing[1];
-  if( nerve.centerIndex[0] - tW[0] < nerveIndex[0] ||
-      nerve.centerIndex[0] + tW[0]> nerveIndex[0] + nerveSize[0] ){
-    return ESTIMATION_FAIL_NERVE;
+  tW[0] = std::fabs( tW[0] * imageSpacing[0] );
+  tW[1] = std::fabs( tW[1] * imageSpacing[1] );
+  if( nerve.centerIndex[0] < nerveIndex[0] ||
+      nerve.centerIndex[0] > nerveIndex[0] + nerveSize[0] ){
+#ifdef DEBUG_PRINT
+  std::cout << "Estimation failed: Nerve out of bounds" << std::endl;
+  std::cout << nerve.centerIndex << std::endl;
+  std::cout << tW << std::endl;
+#endif
+    return false;
   }
-  if( nerve.centerIndex[1] - tW[1] < nerveIndex[1] ||
-      nerve.centerIndex[1] + tW[1] > nerveIndex[1] + nerveSize[1] ){
-    return ESTIMATION_FAIL_NERVE;
+/*
+  if( nerve.centerIndex[1] < nerveIndex[1] ||
+      nerve.centerIndex[1] > nerveIndex[1] + nerveSize[1] ){
+#ifdef DEBUG_PRINT
+  std::cout << "Estimation failed: Nerve out of bounds" << std::endl;
+  std::cout << nerve.centerIndex << std::endl;
+  std::cout << tW << std::endl;
+#endif
+    return false;
   }
+*/
 
 #ifdef DEBUG_PRINT
   std::cout << "Nerve center: " << nerve.centerIndex << std::endl;

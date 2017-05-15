@@ -49,7 +49,11 @@ int main(int argc, char **argv ){
     std::cout << "Estimated optic nerve width: " << 2 * nerve.width << std::endl;
     std::cout << std::endl;
   }
-
+  else{
+    std::cout << std::endl;
+    std::cout << "Estimated optic nerve width: fail" << std::endl;
+    std::cout << std::endl;
+  }
 
   return EXIT_SUCCESS;
 }

@@ -232,7 +232,7 @@ public:
      double nerveOpeningRadiusFactor = 1/50.0;
      double nerveVerticalBorderFactor = 1/7.0;
      int    nerveHorizontalBoder = 2;
-     int    nerveRegistrationThreshold = 55;
+     int    nerveRegistrationThreshold = 65;
      double nerveRefineVerticalBorderFactor = 1/20.0;
      double nerveRegsitrationSmooth = 3;
   };
