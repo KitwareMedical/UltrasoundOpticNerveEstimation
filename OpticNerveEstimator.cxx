@@ -200,9 +200,6 @@ OpticNerveEstimator::FitEye( OpticNerveEstimator::ImageType::Pointer inputImage,
   std::cout << "--- Fitting Eye ---" << std::endl << std::endl;
 #endif
 
-#ifdef DEBUG_IMAGES
-  ImageIO<ImageType>::WriteImage(inputImage, catStrings(prefix, "-eye-input.tif") );
-#endif
 
   ////
   //A. Prepare fixed image
@@ -219,6 +216,9 @@ OpticNerveEstimator::FitEye( OpticNerveEstimator::ImageType::Pointer inputImage,
 
   ImageType::Pointer image = ITKFilterFunctions<ImageType>::Rescale(inputImage, 0, 100);
 
+#ifdef DEBUG_IMAGES
+  ImageIO<ImageType>::WriteImage(image, catStrings(prefix, "-eye-input.tif") );
+#endif
   ImageType::SpacingType imageSpacing = image->GetSpacing();
   ImageType::RegionType imageRegion = image->GetLargestPossibleRegion();
   ImageType::SizeType imageSize = imageRegion.GetSize();
