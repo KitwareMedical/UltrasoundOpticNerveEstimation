@@ -226,11 +226,11 @@ public:
      double nerveXRegionFactor = 1;
      double nerveYRegionFactor = 0.85;
      double nerveYSizeFactor =  1.2;
-     double nerveInitialSmoothXFactor = 2;
+     double nerveInitialSmoothXFactor = 3;
      double nerveInitialSmoothYFactor = 20;
      int    nerveInitialThreshold = 75;
-     double nerveOpeningRadiusFactor = 1/50.0;
-     double nerveVerticalBorderFactor = 1/7.0;
+     double nerveOpeningRadiusFactor = 1/70.0;
+     double nerveVerticalBorderFactor = 1/5.0;
      int    nerveHorizontalBoder = 2;
      int    nerveRegistrationThreshold = 65;
      double nerveRefineVerticalBorderFactor = 1/20.0;
