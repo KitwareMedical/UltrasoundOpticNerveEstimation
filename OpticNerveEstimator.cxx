@@ -371,6 +371,12 @@ OpticNerveEstimator::FitEye( OpticNerveEstimator::ImageType::Pointer inputImage,
   std::cout << "Eye initial radiusX: "<< eye.initialRadiusX << std::endl;
 #endif
 
+  eye.initialCenterIndex[0] = eye.initialRadiusX;
+  eye.initialCenterIndex[1] = eye.initialRadiusY;
+  image->TransformIndexToPhysicalPoint(eye.initialCenterIndex, eye.initialCenter);
+#ifdef DEBUG_PRINT
+  std::cout << "Eye inital center index: " << eye.initialCenterIndex << std::endl;
+#endif
   //--Step 5
   //  Gaussian smoothing, threshold and rescale
 
