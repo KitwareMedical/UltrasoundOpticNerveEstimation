@@ -31,8 +31,8 @@ FIND_PACKAGE(ITK REQUIRED)
 INCLUDE(${ITK_USE_FILE} )
 INCLUDE_DIRECTORIES( ${PROJECT_SOURCE_DIR} )
 
-FIND_PACKAGE(SlicerExecutionModel REQUIRED)
-INCLUDE(${SlicerExecutionModel_USE_FILE})
+#FIND_PACKAGE(SlicerExecutionModel REQUIRED)
+#$INCLUDE(${SlicerExecutionModel_USE_FILE})
 
 
 #ADD_EXECUTABLE(EllipseAffine EllipseAffine.cxx)
