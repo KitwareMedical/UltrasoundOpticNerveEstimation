@@ -196,7 +196,7 @@ OpticNerveEstimator::FitEye( OpticNerveEstimator::ImageType::Pointer inputImage,
   ImageType::Pointer image = ITKFilterFunctions<ImageType>::Rescale(inputImage, 0, 100);
 
 #ifdef DEBUG_IMAGES
-  ImageIO<ImageType>::WriteImage(image, catStrings(prefix, "-eye-input.tif") );
+  SaveAsPNG(image, catStrings(prefix, "-eye-input.png") );
 #endif
   ImageType::SpacingType imageSpacing = image->GetSpacing();
   ImageType::RegionType imageRegion = image->GetLargestPossibleRegion();
@@ -262,7 +262,7 @@ OpticNerveEstimator::FitEye( OpticNerveEstimator::ImageType::Pointer inputImage,
   ImageType::Pointer imageDistance = signedDistanceFilter->GetOutput();
 
 #ifdef DEBUG_IMAGES
-  ImageIO<ImageType>::WriteImage(imageDistance, catStrings(prefix, "-eye-distance.tif") );
+  SaveAsPNG(imageDistance, catStrings(prefix, "-eye-distance.png") );
 #endif
 
   //Compute max of distance transfrom
@@ -322,7 +322,7 @@ OpticNerveEstimator::FitEye( OpticNerveEstimator::ImageType::Pointer inputImage,
   ImageType::Pointer imageDistanceY = signedDistanceY->GetOutput();
 
 #ifdef DEBUG_IMAGES
-  ImageIO<ImageType>::WriteImage(imageDistanceY, catStrings(prefix, "-eye-ydistance.tif") );
+  SaveAsPNG(imageDistanceY, catStrings(prefix, "-eye-ydistance.png") );
 #endif
 
   ImageCalculatorFilterType::Pointer imageCalculatorY = ImageCalculatorFilterType::New ();
@@ -359,7 +359,7 @@ OpticNerveEstimator::FitEye( OpticNerveEstimator::ImageType::Pointer inputImage,
   ImageType::Pointer imageDistanceX = signedDistanceX->GetOutput();
 
 #ifdef DEBUG_IMAGES
-  ImageIO<ImageType>::WriteImage(imageDistanceX, catStrings(prefix, "-eye-xdistance.tif") );
+  SaveAsPNG(imageDistanceX, catStrings(prefix, "-eye-xdistance.png") );
 #endif
 
   ImageCalculatorFilterType::Pointer imageCalculatorX = ImageCalculatorFilterType::New ();
@@ -388,7 +388,7 @@ OpticNerveEstimator::FitEye( OpticNerveEstimator::ImageType::Pointer inputImage,
   imageSmooth = ITKFilterFunctions<ImageType>::Rescale( imageSmooth, 0, 100);
 
 #ifdef DEBUG_IMAGES
-  ImageIO<ImageType>::WriteImage(imageSmooth, catStrings(prefix, "-eye-smooth.tif") );
+  SaveAsPNG(imageSmooth, catStrings(prefix, "-eye-smooth.png") );
 #endif
 
 #ifdef REPORT_TIMES
@@ -434,7 +434,7 @@ OpticNerveEstimator::FitEye( OpticNerveEstimator::ImageType::Pointer inputImage,
   ellipse = ITKFilterFunctions<ImageType>::Rescale(ellipse, 0, 100);
 
 #ifdef DEBUG_IMAGES
-  ImageIO<ImageType>::WriteImage( ellipse, catStrings(prefix, "-eye-moving.tif") );
+  SaveAsPNG( ellipse, catStrings(prefix, "-eye-moving.png") );
 #endif
 
 #ifdef DEBUG_PRINT
@@ -541,7 +541,7 @@ OpticNerveEstimator::FitEye( OpticNerveEstimator::ImageType::Pointer inputImage,
   metric->SetFixedImageMask( spatialObjectMask );
 
 #ifdef DEBUG_IMAGES
-  ImageIO<ImageType>::WriteImage( ellipseMask, catStrings(prefix, "-eye-mask.tif")  );
+  SaveAsPNG( ellipseMask, catStrings(prefix, "-eye-mask.png")  );
 #endif
 
   registration->SetMetric(        metric        );
@@ -629,7 +629,7 @@ OpticNerveEstimator::FitEye( OpticNerveEstimator::ImageType::Pointer inputImage,
     eye.aligned = moved;
 
 #ifdef DEBUG_IMAGES
-    ImageIO<ImageType>::WriteImage( moved, catStrings(prefix, "-eye-registred.tif")  );
+    SaveAsPNG( moved, catStrings(prefix, "-eye-registred.png")  );
 #endif
 
   }
@@ -755,7 +755,7 @@ OpticNerveEstimator::FitNerve(
 
 
 #ifdef DEBUG_IMAGES
-  ImageIO<ImageType>::WriteImage( nerveImageOrig, catStrings(prefix, "-nerve.tif") );
+  SaveAsPNG( nerveImageOrig, catStrings(prefix, "-nerve.png") );
 #endif
 
 
@@ -778,7 +778,7 @@ OpticNerveEstimator::FitNerve(
 
 
 #ifdef DEBUG_IMAGES
-  ImageIO<ImageType>::WriteImage( nerveImage, catStrings(prefix, "-nerve-smooth.tif") );
+  SaveAsPNG( nerveImage, catStrings(prefix, "-nerve-smooth.png") );
 #endif
 
 
@@ -795,7 +795,7 @@ OpticNerveEstimator::FitNerve(
                                  algParams.nerveInitialThreshold, 0, 100);
 
 #ifdef DEBUG_IMAGES
-  ImageIO<ImageType>::WriteImage( nerveImageB, catStrings(prefix, "-nerve-sd-thres.tif") );
+  SaveAsPNG( nerveImageB, catStrings(prefix, "-nerve-sd-thres.png") );
 #endif
 
   StructuringElementType structuringElement;
@@ -809,7 +809,7 @@ OpticNerveEstimator::FitNerve(
   nerveImageB = openingFilter->GetOutput();
 
 #ifdef DEBUG_IMAGES
-  ImageIO<ImageType>::WriteImage( nerveImageB, catStrings(prefix, "-nerve-morpho.tif") );
+  SaveAsPNG( nerveImageB, catStrings(prefix, "-nerve-morpho.png") );
 #endif
 
   CastFilter::Pointer nerveCastFilter = CastFilter::New();
@@ -858,7 +858,7 @@ OpticNerveEstimator::FitNerve(
   ImageType::Pointer nerveDistance = nerveDistanceFilter->GetOutput();
 
 #ifdef DEBUG_IMAGES
-  ImageIO<ImageType>::WriteImage( nerveDistance, catStrings(prefix, "-nerve-distance.tif") );
+  SaveAsPNG( nerveDistance, catStrings(prefix, "-nerve-distance.png") );
 #endif
 
   //Compute max of distance transfrom
@@ -928,7 +928,7 @@ OpticNerveEstimator::FitNerve(
   }
 
 #ifdef DEBUG_IMAGES
-  ImageIO<ImageType>::WriteImage( nerveImage, catStrings(prefix, "-nerve-scaled.tif") );
+  SaveAsPNG( nerveImage, catStrings(prefix, "-nerve-scaled.png") );
 #endif
 
 
@@ -989,7 +989,7 @@ OpticNerveEstimator::FitNerve(
 
 
 #ifdef DEBUG_IMAGES
-  ImageIO<ImageType>::WriteImage( nerveDistance, catStrings(prefix, "-nerve-scaled-distance.tif") );
+  SaveAsPNG( nerveDistance, catStrings(prefix, "-nerve-scaled-distance.png") );
 #endif
 
   //Compute max of distance transfrom
@@ -1025,7 +1025,7 @@ OpticNerveEstimator::FitNerve(
 
 
 #ifdef DEBUG_IMAGES
-  ImageIO<ImageType>::WriteImage( nerveImage, catStrings(prefix, "-nerve-thres.tif") );
+  SaveAsPNG( nerveImage, catStrings(prefix, "-nerve-thres.png") );
 #endif
 
 #ifdef REPORT_TIMES
@@ -1035,7 +1035,7 @@ OpticNerveEstimator::FitNerve(
 
   /////
   //B. Prepare fixed image.
-  //  Create artifical nerve image to fit to region of interest.
+  //  Create arpngical nerve image to fit to region of interest.
   /////
 
 #ifdef REPORT_TIMES
@@ -1100,7 +1100,7 @@ OpticNerveEstimator::FitNerve(
   }
 
 #ifdef DEBUG_IMAGES
-  ImageIO<UnsignedCharImageType>::WriteImage( movingMask, catStrings(prefix, "-nerve-mask.tif") );
+  ImageIO<UnsignedCharImageType>::WriteImage( movingMask, catStrings(prefix, "-nerve-mask.png") );
 #endif
 
 
@@ -1113,7 +1113,7 @@ OpticNerveEstimator::FitNerve(
   moving = ITKFilterFunctions<ImageType>::GaussSmooth(moving, sigma);
 
 #ifdef DEBUG_IMAGES
-  ImageIO<ImageType>::WriteImage( moving, catStrings( prefix, "-nerve-moving.tif" ) );
+  SaveAsPNG( moving, catStrings( prefix, "-nerve-moving.png" ) );
 #endif
 
 #ifdef REPORT_TIMES
@@ -1121,7 +1121,7 @@ OpticNerveEstimator::FitNerve(
 #endif
 
   ////
-  //C. Registration of artifical nerve image to threhsold nerve image
+  //C. Registration of arpngical nerve image to threhsold nerve image
   ////
 
 #ifdef REPORT_TIMES
@@ -1244,7 +1244,7 @@ OpticNerveEstimator::FitNerve(
 
 
 #ifdef DEBUG_IMAGES
-    ImageIO<ImageType>::WriteImage(moved, catStrings(prefix, "-nerve-registered.tif") );
+    SaveAsPNG(moved, catStrings(prefix, "-nerve-registered.png") );
 #endif
   }
 

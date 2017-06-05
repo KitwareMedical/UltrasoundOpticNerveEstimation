@@ -424,5 +424,13 @@ private:
                                        );
 
 
+  void SaveAsPNG( ImageType::Pointer image, std::string filename){
+    image = ITKFilterFunctions<ImageType>::Rescale( image, 0, 255);
+    CastFilter::Pointer castFilter = CastFilter::New();
+    castFilter->SetInput( image );
+    castFilter->Update();
+    UnsignedCharImageType::Pointer png = castFilter->GetOutput();
+    ImageIO<UnsignedCharImageType>::WriteImage(png, filename);
+  }
 
 };
